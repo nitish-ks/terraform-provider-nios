@@ -12,11 +12,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 
 	niosclient "github.com/Infoblox-CTO/infoblox-nios-go-client/client"
-	"github.com/Infoblox-CTO/infoblox-nios-terraform/internal/flex"
 	"github.com/Infoblox-CTO/infoblox-nios-terraform/internal/utils"
 )
 
-var readableAttributes = "aws_rte53_record_info,cloud_info,comment,creation_time,creator,ddns_principal,ddns_protected,disable,discovered_data,dns_name,extattrs,forbid_reclamation,ipv4addr,last_queried,ms_ad_user_data,name,reclaimable,shared_record_group,ttl,use_ttl,view,zone"
+var readableAttributesForRecordA = "aws_rte53_record_info,cloud_info,comment,creation_time,creator,ddns_principal,ddns_protected,disable,discovered_data,dns_name,extattrs,forbid_reclamation,ipv4addr,last_queried,ms_ad_user_data,name,reclaimable,shared_record_group,ttl,use_ttl,view,zone"
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &RecordaResource{}
@@ -74,7 +73,7 @@ func (r *RecordaResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Add internal ID exists in the Extensible Attributes if not already present
-	if err := addInternalIDToExtAttrs(ctx, r, &data); err != nil {
+	if err := r.addInternalIDToExtAttrs(ctx, &data); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add internal ID to Extensible Attributes, got error: %s", err))
 		return
 	}
@@ -83,7 +82,7 @@ func (r *RecordaResource) Create(ctx context.Context, req resource.CreateRequest
 		RecordaAPI.
 		Post(ctx).
 		RecordA(*data.Expand(ctx, &resp.Diagnostics, true)).
-		ReturnFields2(readableAttributes).
+		ReturnFields2(readableAttributesForRecordA).
 		ReturnAsObject(1).
 		Execute()
 	if err != nil {
@@ -92,7 +91,7 @@ func (r *RecordaResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	res := apiRes.CreateRecordAResponseAsObject.GetResult()
-	res.Extattrs, diags = flex.RemoveInheritedExtAttrs(ctx, data.ExtAttrs, *res.Extattrs)
+	res.Extattrs, diags = RemoveInheritedExtAttrs(ctx, data.ExtAttrs, *res.Extattrs)
 	if diags.HasError() {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error while create Recorda due inherited Extensible attributes, got error: %s", err))
 		return
@@ -118,13 +117,13 @@ func (r *RecordaResource) Read(ctx context.Context, req resource.ReadRequest, re
 	apiRes, httpRes, err := r.client.DNSAPI.
 		RecordaAPI.
 		ReferenceGet(ctx, utils.ExtractResourceRef(data.Ref.ValueString())).
-		ReturnFields2(readableAttributes).
+		ReturnFields2(readableAttributesForRecordA).
 		ReturnAsObject(1).
 		Execute()
 
 	// If the resource is not found, try searching using Extensible Attributes
 	if err != nil {
-		if httpRes != nil && httpRes.StatusCode == http.StatusNotFound && ReadByExtAttrs(ctx, r, &data, resp) {
+		if httpRes != nil && httpRes.StatusCode == http.StatusNotFound && r.ReadByExtAttrs(ctx, &data, resp) {
 			return
 		}
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read Recorda, got error: %s", err))
@@ -132,7 +131,7 @@ func (r *RecordaResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	res := apiRes.GetRecordAResponseObjectAsResult.GetResult()
-	res.Extattrs, diags = flex.RemoveInheritedExtAttrs(ctx, data.ExtAttrs, *res.Extattrs)
+	res.Extattrs, diags = RemoveInheritedExtAttrs(ctx, data.ExtAttrs, *res.Extattrs)
 	if diags.HasError() {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error while reading Recorda due inherited Extensible attributes, got error: %s", diags))
 		return
@@ -144,14 +143,14 @@ func (r *RecordaResource) Read(ctx context.Context, req resource.ReadRequest, re
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func ReadByExtAttrs(ctx context.Context, r *RecordaResource, data *RecordAModel, resp *resource.ReadResponse) bool {
+func (r *RecordaResource) ReadByExtAttrs(ctx context.Context, data *RecordAModel, resp *resource.ReadResponse) bool {
 	var diags diag.Diagnostics
 
 	if data.ExtAttrsAll.IsNull() {
 		return false
 	}
 
-	internalIdExtAttr := *flex.ExpandExtAttr(ctx, data.ExtAttrsAll, &diags)
+	internalIdExtAttr := *ExpandExtAttr(ctx, data.ExtAttrsAll, &diags)
 	if diags.HasError() {
 		return false
 	}
@@ -170,7 +169,7 @@ func ReadByExtAttrs(ctx context.Context, r *RecordaResource, data *RecordAModel,
 		Get(ctx).
 		Extattrfilter(idMap).
 		ReturnAsObject(1).
-		ReturnFields2(readableAttributes).
+		ReturnFields2(readableAttributesForRecordA).
 		Execute()
 
 	if err != nil {
@@ -186,7 +185,7 @@ func ReadByExtAttrs(ctx context.Context, r *RecordaResource, data *RecordAModel,
 		res := apiRes.ListRecordAResponseObject.GetResult()[0]
 
 		// Remove inherited external attributes and check for errors
-		res.Extattrs, diags = flex.RemoveInheritedExtAttrs(ctx, data.ExtAttrs, *res.Extattrs)
+		res.Extattrs, diags = RemoveInheritedExtAttrs(ctx, data.ExtAttrs, *res.Extattrs)
 		if diags.HasError() {
 			return true
 		}
@@ -209,7 +208,7 @@ func (r *RecordaResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Add internal ID exists in the Extensible Attributes if not already present
-	if err := addInternalIDToExtAttrs(ctx, r, &data); err != nil {
+	if err := r.addInternalIDToExtAttrs(ctx, &data); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add internal ID to Extensible Attributes, got error: %s", err))
 		return
 	}
@@ -218,7 +217,7 @@ func (r *RecordaResource) Update(ctx context.Context, req resource.UpdateRequest
 		RecordaAPI.
 		ReferencePut(ctx, utils.ExtractResourceRef(data.Ref.ValueString())).
 		RecordA(*data.Expand(ctx, &resp.Diagnostics, false)).
-		ReturnFields2(readableAttributes).
+		ReturnFields2(readableAttributesForRecordA).
 		ReturnAsObject(1).
 		Execute()
 	if err != nil {
@@ -228,7 +227,7 @@ func (r *RecordaResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	res := apiRes.UpdateRecordAResponseAsObject.GetResult()
 
-	res.Extattrs, diags = flex.RemoveInheritedExtAttrs(ctx, data.ExtAttrs, *res.Extattrs)
+	res.Extattrs, diags = RemoveInheritedExtAttrs(ctx, data.ExtAttrs, *res.Extattrs)
 	if diags.HasError() {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Error while update Recorda due inherited Extensible attributes, got error: %s", diags))
 		return
@@ -263,7 +262,7 @@ func (r *RecordaResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 }
 
-func addInternalIDToExtAttrs(ctx context.Context, r *RecordaResource, data *RecordAModel) error {
+func (r *RecordaResource) addInternalIDToExtAttrs(ctx context.Context, data *RecordAModel) error {
 	_, exists := data.ExtAttrsAll.Elements()["Terraform Internal ID"]
 	if exists {
 		return nil
