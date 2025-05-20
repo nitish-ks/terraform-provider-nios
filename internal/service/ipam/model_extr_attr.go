@@ -1,15 +1,17 @@
-package flex
+package ipam
 
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	schema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
-	"github.com/Infoblox-CTO/infoblox-nios-go-client/dns"
+	"github.com/Infoblox-CTO/infoblox-nios-go-client/ipam"
+	"github.com/Infoblox-CTO/infoblox-nios-terraform/internal/flex"
 )
 
 type ExtAttrModel struct {
@@ -27,12 +29,12 @@ var ExtAttrResourceSchemaAttributes = map[string]schema.Attribute{
 	},
 }
 
-func ExpandExtAttr(ctx context.Context, tfMap types.Map, diags *diag.Diagnostics) *map[string]dns.ExtAttrs {
+func ExpandExtAttr(ctx context.Context, tfMap types.Map, diags *diag.Diagnostics) *map[string]ipam.ExtAttrs {
 	if tfMap.IsNull() || tfMap.IsUnknown() {
 		return nil
 	}
 
-	result := make(map[string]dns.ExtAttrs)
+	result := make(map[string]ipam.ExtAttrs)
 	for key, val := range tfMap.Elements() {
 		objVal, ok := val.(basetypes.ObjectValue)
 		if !ok {
@@ -55,17 +57,17 @@ func ExpandExtAttr(ctx context.Context, tfMap types.Map, diags *diag.Diagnostics
 	return &result
 }
 
-func (m *ExtAttrModel) Expand(ctx context.Context, diags *diag.Diagnostics) *dns.ExtAttrs {
+func (m *ExtAttrModel) Expand(ctx context.Context, diags *diag.Diagnostics) *ipam.ExtAttrs {
 	if m == nil {
 		return nil
 	}
-	to := &dns.ExtAttrs{
-		Value: ExpandString(m.Value),
+	to := &ipam.ExtAttrs{
+		Value: flex.ExpandString(m.Value),
 	}
 	return to
 }
 
-func FlattenExtAttr(ctx context.Context, input map[string]dns.ExtAttrs, diags *diag.Diagnostics) types.Map {
+func FlattenExtAttr(ctx context.Context, input map[string]ipam.ExtAttrs, diags *diag.Diagnostics) types.Map {
 
 	elementsOg := make(map[string]attr.Value)
 
@@ -85,12 +87,45 @@ func FlattenExtAttr(ctx context.Context, input map[string]dns.ExtAttrs, diags *d
 	return elements
 }
 
-func (m *ExtAttrModel) Flatten(ctx context.Context, from *dns.ExtAttrs, diags *diag.Diagnostics) {
+func (m *ExtAttrModel) Flatten(ctx context.Context, from *ipam.ExtAttrs, diags *diag.Diagnostics) {
 	if from == nil {
 		return
 	}
 	if m == nil {
 		*m = ExtAttrModel{}
 	}
-	m.Value = FlattenString(from.Value)
+	m.Value = flex.FlattenString(from.Value)
+}
+
+func RemoveInheritedExtAttrs(ctx context.Context, planExtAttrs types.Map, respExtAttrs map[string]ipam.ExtAttrs) (*map[string]ipam.ExtAttrs, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	newRespMap := make(map[string]ipam.ExtAttrs, len(respExtAttrs))
+
+	if planExtAttrs.IsNull() || planExtAttrs.IsUnknown() {
+		if v, ok := respExtAttrs["Terraform Internal ID"]; ok {
+			newRespMap["Terraform Internal ID"] = v
+		}
+		return &newRespMap, nil
+	}
+
+	planMap := *ExpandExtAttr(ctx, planExtAttrs, &diags)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	for k, v := range respExtAttrs {
+		if k == "Terraform Internal ID" {
+			newRespMap[k] = v
+			continue
+		}
+
+		if respExtAttrs[k].AdditionalProperties["inheritance_source"] != nil {
+			if planVal, ok := planMap[k]; ok {
+				newRespMap[k] = planVal
+			}
+			continue
+		}
+		newRespMap[k] = respExtAttrs[k]
+	}
+	return &newRespMap, diags
 }
