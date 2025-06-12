@@ -3,7 +3,6 @@ package dns
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -110,6 +109,7 @@ var RecordAResourceSchemaAttributes = map[string]schema.Attribute{
 		MarkdownDescription: "The record creator.",
 	},
 	"ddns_principal": schema.StringAttribute{
+		Computed:            true,
 		Optional:            true,
 		MarkdownDescription: "The GSS-TSIG principal that owns this record.",
 	},
@@ -181,6 +181,7 @@ var RecordAResourceSchemaAttributes = map[string]schema.Attribute{
 	},
 	"remove_associated_ptr": schema.BoolAttribute{
 		Optional:            true,
+		Computed:            true,
 		MarkdownDescription: "Whether to remove associated PTR records while deleting the A record.",
 	},
 	"shared_record_group": schema.StringAttribute{
@@ -188,24 +189,22 @@ var RecordAResourceSchemaAttributes = map[string]schema.Attribute{
 		MarkdownDescription: "The shared record group this record belongs to.",
 	},
 	"ttl": schema.Int64Attribute{
-		Optional:            true,
 		Computed:            true,
+		Optional:            true,
 		MarkdownDescription: "Time-to-live value of the record, in seconds.",
 		Validators: []validator.Int64{
 			int64validator.AlsoRequires(path.MatchRoot("use_ttl")),
 		},
 	},
 	"use_ttl": schema.BoolAttribute{
-		Optional: true,
-		Computed: true,
-		Default:  booldefault.StaticBool(false),
-		Validators: []validator.Bool{
-			boolvalidator.AlsoRequires(path.MatchRoot("ttl")),
-		},
+		Optional:            true,
+		Computed:            true,
+		Default:             booldefault.StaticBool(false),
 		MarkdownDescription: "Flag to indicate whether the TTL value should be used for the A record.",
 	},
 	"view": schema.StringAttribute{
 		Optional:            true,
+		Computed:            true,
 		MarkdownDescription: "View that this record is part of.",
 	},
 	"zone": schema.StringAttribute{
