@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -26,7 +26,7 @@ type RecordPtrModel struct {
 	AwsRte53RecordInfo types.Object `tfsdk:"aws_rte53_record_info"`
 	CloudInfo          types.Object `tfsdk:"cloud_info"`
 	Comment            types.String `tfsdk:"comment"`
-	CreationTime       types.Int32  `tfsdk:"creation_time"`
+	CreationTime       types.Int64  `tfsdk:"creation_time"`
 	Creator            types.String `tfsdk:"creator"`
 	DdnsPrincipal      types.String `tfsdk:"ddns_principal"`
 	DdnsProtected      types.Bool   `tfsdk:"ddns_protected"`
@@ -40,13 +40,13 @@ type RecordPtrModel struct {
 	Ipv4addr           types.String `tfsdk:"ipv4addr"`
 	FuncCall           types.Object `tfsdk:"func_call"`
 	Ipv6addr           types.String `tfsdk:"ipv6addr"`
-	LastQueried        types.Int32  `tfsdk:"last_queried"`
+	LastQueried        types.Int64  `tfsdk:"last_queried"`
 	MsAdUserData       types.Object `tfsdk:"ms_ad_user_data"`
 	Name               types.String `tfsdk:"name"`
 	Ptrdname           types.String `tfsdk:"ptrdname"`
 	Reclaimable        types.Bool   `tfsdk:"reclaimable"`
 	SharedRecordGroup  types.String `tfsdk:"shared_record_group"`
-	Ttl                types.Int32  `tfsdk:"ttl"`
+	Ttl                types.Int64  `tfsdk:"ttl"`
 	UseTtl             types.Bool   `tfsdk:"use_ttl"`
 	View               types.String `tfsdk:"view"`
 	Zone               types.String `tfsdk:"zone"`
@@ -57,7 +57,7 @@ var RecordPtrAttrTypes = map[string]attr.Type{
 	"aws_rte53_record_info": types.ObjectType{AttrTypes: RecordPtrAwsRte53RecordInfoAttrTypes},
 	"cloud_info":            types.ObjectType{AttrTypes: RecordPtrCloudInfoAttrTypes},
 	"comment":               types.StringType,
-	"creation_time":         types.Int32Type,
+	"creation_time":         types.Int64Type,
 	"creator":               types.StringType,
 	"ddns_principal":        types.StringType,
 	"ddns_protected":        types.BoolType,
@@ -71,13 +71,13 @@ var RecordPtrAttrTypes = map[string]attr.Type{
 	"ipv4addr":              types.StringType,
 	"func_call":             types.ObjectType{AttrTypes: FuncCallAttrTypes},
 	"ipv6addr":              types.StringType,
-	"last_queried":          types.Int32Type,
+	"last_queried":          types.Int64Type,
 	"ms_ad_user_data":       types.ObjectType{AttrTypes: RecordPtrMsAdUserDataAttrTypes},
 	"name":                  types.StringType,
 	"ptrdname":              types.StringType,
 	"reclaimable":           types.BoolType,
 	"shared_record_group":   types.StringType,
-	"ttl":                   types.Int32Type,
+	"ttl":                   types.Int64Type,
 	"use_ttl":               types.BoolType,
 	"view":                  types.StringType,
 	"zone":                  types.StringType,
@@ -101,7 +101,7 @@ var RecordPtrResourceSchemaAttributes = map[string]schema.Attribute{
 		Computed:            true,
 		MarkdownDescription: "Comment for the record; maximum 256 characters.",
 	},
-	"creation_time": schema.Int32Attribute{
+	"creation_time": schema.Int64Attribute{
 		Computed:            true,
 		MarkdownDescription: "The time of the record creation in Epoch seconds format.",
 	},
@@ -192,7 +192,7 @@ var RecordPtrResourceSchemaAttributes = map[string]schema.Attribute{
 		},
 		MarkdownDescription: "The IPv6 Address of the record.",
 	},
-	"last_queried": schema.Int32Attribute{
+	"last_queried": schema.Int64Attribute{
 		Computed:            true,
 		MarkdownDescription: "The time of the last DNS query in Epoch seconds format.",
 	},
@@ -226,10 +226,10 @@ var RecordPtrResourceSchemaAttributes = map[string]schema.Attribute{
 		Computed:            true,
 		MarkdownDescription: "The name of the shared record group in which the record resides. This field exists only on db_objects if this record is a shared record.",
 	},
-	"ttl": schema.Int32Attribute{
+	"ttl": schema.Int64Attribute{
 		Optional: true,
-		Validators: []validator.Int32{
-			int32validator.AlsoRequires(path.MatchRoot("use_ttl")),
+		Validators: []validator.Int64{
+			int64validator.AlsoRequires(path.MatchRoot("use_ttl")),
 		},
 		MarkdownDescription: "Time To Live (TTL) value for the record. A 32-bit unsigned integer that represents the duration, in seconds, that the record is valid (cached). Zero indicates that the record should not be cached.",
 	},
@@ -275,7 +275,7 @@ func (m *RecordPtrModel) Expand(ctx context.Context, diags *diag.Diagnostics, is
 		MsAdUserData:       ExpandRecordPtrMsAdUserData(ctx, m.MsAdUserData, diags),
 		Name:               flex.ExpandStringPointer(m.Name),
 		Ptrdname:           flex.ExpandStringPointer(m.Ptrdname),
-		Ttl:                flex.ExpandInt32Pointer(m.Ttl),
+		Ttl:                flex.ExpandInt64Pointer(m.Ttl),
 		UseTtl:             flex.ExpandBoolPointer(m.UseTtl),
 	}
 	if isCreate {
@@ -307,7 +307,7 @@ func (m *RecordPtrModel) Flatten(ctx context.Context, from *dns.RecordPtr, diags
 	m.AwsRte53RecordInfo = FlattenRecordPtrAwsRte53RecordInfo(ctx, from.AwsRte53RecordInfo, diags)
 	m.CloudInfo = FlattenRecordPtrCloudInfo(ctx, from.CloudInfo, diags)
 	m.Comment = flex.FlattenStringPointer(from.Comment)
-	m.CreationTime = flex.FlattenInt32Pointer(from.CreationTime)
+	m.CreationTime = flex.FlattenInt64Pointer(from.CreationTime)
 	m.Creator = flex.FlattenStringPointer(from.Creator)
 	m.DdnsPrincipal = flex.FlattenStringPointer(from.DdnsPrincipal)
 	m.DdnsProtected = types.BoolPointerValue(from.DdnsProtected)
@@ -319,13 +319,13 @@ func (m *RecordPtrModel) Flatten(ctx context.Context, from *dns.RecordPtr, diags
 	m.ForbidReclamation = types.BoolPointerValue(from.ForbidReclamation)
 	m.Ipv4addr = FlattenRecordPtrIpv4addr(from.Ipv4addr)
 	m.Ipv6addr = FlattenRecordPtrIpv6addr(from.Ipv6addr)
-	m.LastQueried = flex.FlattenInt32Pointer(from.LastQueried)
+	m.LastQueried = flex.FlattenInt64Pointer(from.LastQueried)
 	m.MsAdUserData = FlattenRecordPtrMsAdUserData(ctx, from.MsAdUserData, diags)
 	m.Name = flex.FlattenStringPointer(from.Name)
 	m.Ptrdname = flex.FlattenStringPointer(from.Ptrdname)
 	m.Reclaimable = types.BoolPointerValue(from.Reclaimable)
 	m.SharedRecordGroup = flex.FlattenStringPointer(from.SharedRecordGroup)
-	m.Ttl = flex.FlattenInt32Pointer(from.Ttl)
+	m.Ttl = flex.FlattenInt64Pointer(from.Ttl)
 	m.UseTtl = types.BoolPointerValue(from.UseTtl)
 	m.View = flex.FlattenStringPointer(from.View)
 	m.Zone = flex.FlattenStringPointer(from.Zone)
