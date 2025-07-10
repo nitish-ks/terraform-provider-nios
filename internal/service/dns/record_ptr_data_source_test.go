@@ -124,5 +124,5 @@ data "nios_dns_record_ptr" "test" {
 	"Site" = nios_dns_record_ptr.test.extattrs.Site
   }
 }
-`, extAttrsValue)
+`, ipv4addr, ptrdname, view, extAttrsValue)
 }

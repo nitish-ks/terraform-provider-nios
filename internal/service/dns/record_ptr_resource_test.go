@@ -37,7 +37,7 @@ func TestAccRecordPtrResource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "ipv4addr", Ipv4addr),
 					resource.TestCheckResourceAttr(resourceName, "ptrdname", Ptrdname),
 					resource.TestCheckResourceAttr(resourceName, "view", "default"),
-					resource.TestCheckResourceAttr(resourceName, "name", "23.10.168.192.in-addr.arpa"),
+					resource.TestCheckResourceAttr(resourceName, "name", "22.10.168.192.in-addr.arpa"),
 					resource.TestCheckResourceAttr(resourceName, "creator", "STATIC"),
 					resource.TestCheckResourceAttr(resourceName, "ddns_protected", "false"),
 					resource.TestCheckResourceAttr(resourceName, "disable", "false"),
@@ -143,7 +143,7 @@ func TestAccRecordPtrResource_DdnsPrincipal(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccRecordPtrDdnsPrincipal("25.10.168.192.in-addr.arpa", "ptr.example.com", "default", "host/myhost.example.com@EXAMPLE.COM"),
+				Config: testAccRecordPtrDdnsPrincipal("25.10.168.192.in-addr.arpa", "ptr.example.com", "default", "DYNAMIC", "host/myhost.example.com@EXAMPLE.COM"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
 					resource.TestCheckResourceAttr(resourceName, "ddns_principal", "host/myhost.example.com@EXAMPLE.COM"),
@@ -151,7 +151,7 @@ func TestAccRecordPtrResource_DdnsPrincipal(t *testing.T) {
 			},
 			// Update and Read
 			{
-				Config: testAccRecordPtrDdnsPrincipal("25.10.168.192.in-addr.arpa", "ptr.example.com", "default", "host/otherhost.example.net@EXAMPLE.NET"),
+				Config: testAccRecordPtrDdnsPrincipal("25.10.168.192.in-addr.arpa", "ptr.example.com", "default", "DYNAMIC", "host/otherhost.example.net@EXAMPLE.NET"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
 					resource.TestCheckResourceAttr(resourceName, "ddns_principal", "host/otherhost.example.net@EXAMPLE.NET"),
@@ -172,18 +172,18 @@ func TestAccRecordPtrResource_DdnsProtected(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccRecordPtrDdnsProtected("DDNS_PROTECTED_REPLACE_ME"),
+				Config: testAccRecordPtrDdnsProtected("26.10.168.192.in-addr.arpa", "ptr.example.com", "default", "false"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ddns_protected", "DDNS_PROTECTED_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "ddns_protected", "false"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccRecordPtrDdnsProtected("DDNS_PROTECTED_UPDATE_REPLACE_ME"),
+				Config: testAccRecordPtrDdnsProtected("26.10.168.192.in-addr.arpa", "ptr.example.com", "default", "true"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ddns_protected", "DDNS_PROTECTED_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "ddns_protected", "true"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -201,18 +201,18 @@ func TestAccRecordPtrResource_Disable(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccRecordPtrDisable("DISABLE_REPLACE_ME"),
+				Config: testAccRecordPtrDisable("27.10.168.192.in-addr.arpa", "ptr.example.com", "default", "false"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "disable", "DISABLE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "disable", "false"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccRecordPtrDisable("DISABLE_UPDATE_REPLACE_ME"),
+				Config: testAccRecordPtrDisable("27.10.168.192.in-addr.arpa", "ptr.example.com", "default", "true"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "disable", "DISABLE_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "disable", "true"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -223,6 +223,8 @@ func TestAccRecordPtrResource_Disable(t *testing.T) {
 func TestAccRecordPtrResource_ExtAttrs(t *testing.T) {
 	var resourceName = "nios_dns_record_ptr.test_extattrs"
 	var v dns.RecordPtr
+	extAttrValue1 := acctest.RandomName()
+	extAttrValue2 := acctest.RandomName()
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -230,18 +232,18 @@ func TestAccRecordPtrResource_ExtAttrs(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccRecordPtrExtAttrs("EXT_ATTRS_REPLACE_ME"),
+				Config: testAccRecordPtrExtAttrs("28.10.168.192.in-addr.arpa", "ptr.example.com", "default", map[string]string{"Site": extAttrValue1}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "extattrs", "EXT_ATTRS_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "extattrs.Site", extAttrValue1),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccRecordPtrExtAttrs("EXT_ATTRS_UPDATE_REPLACE_ME"),
+				Config: testAccRecordPtrExtAttrs("28.10.168.192.in-addr.arpa", "ptr.example.com", "default", map[string]string{"Site": extAttrValue2}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "extattrs", "EXT_ATTRS_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "extattrs.Site", extAttrValue2),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -259,18 +261,18 @@ func TestAccRecordPtrResource_ForbidReclamation(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccRecordPtrForbidReclamation("FORBID_RECLAMATION_REPLACE_ME"),
+				Config: testAccRecordPtrForbidReclamation("29.10.168.192.in-addr.arpa", "ptr.example.com", "default", "true"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "forbid_reclamation", "FORBID_RECLAMATION_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "forbid_reclamation", "true"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccRecordPtrForbidReclamation("FORBID_RECLAMATION_UPDATE_REPLACE_ME"),
+				Config: testAccRecordPtrForbidReclamation("29.10.168.192.in-addr.arpa", "ptr.example.com", "default", "false"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "forbid_reclamation", "FORBID_RECLAMATION_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "forbid_reclamation", "false"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -288,18 +290,18 @@ func TestAccRecordPtrResource_Ipv4addr(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccRecordPtrIpv4addr("IPV4ADDR_REPLACE_ME"),
+				Config: testAccRecordPtrIpv4addr("192.168.10.30", "ptr.example.com", "default"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ipv4addr", "IPV4ADDR_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "ipv4addr", "192.168.10.30"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccRecordPtrIpv4addr("IPV4ADDR_UPDATE_REPLACE_ME"),
+				Config: testAccRecordPtrIpv4addr("192.168.10.31", "ptr.example.com", "default"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ipv4addr", "IPV4ADDR_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "ipv4addr", "192.168.10.31"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -385,18 +387,18 @@ func TestAccRecordPtrResource_Name(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccRecordPtrName("NAME_REPLACE_ME"),
+				Config: testAccRecordPtrName("32.10.168.192.in-addr.arpa", "ptr.example.com", "default"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "name", "NAME_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "name", "32.10.168.192.in-addr.arpa"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccRecordPtrName("NAME_UPDATE_REPLACE_ME"),
+				Config: testAccRecordPtrName("33.10.168.192.in-addr.arpa", "ptr.example.com", "default"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "name", "NAME_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "name", "33.10.168.192.in-addr.arpa"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -414,18 +416,18 @@ func TestAccRecordPtrResource_Ptrdname(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccRecordPtrPtrdname("PTRDNAME_REPLACE_ME"),
+				Config: testAccRecordPtrPtrdname("ptr.example.com", "192.168.10.34", "default"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ptrdname", "PTRDNAME_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "ptrdname", "ptr.example.com"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccRecordPtrPtrdname("PTRDNAME_UPDATE_REPLACE_ME"),
+				Config: testAccRecordPtrPtrdname("updated.example.com", "192.168.10.34", "default"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ptrdname", "PTRDNAME_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "ptrdname", "updated.example.com"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -443,18 +445,18 @@ func TestAccRecordPtrResource_Ttl(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccRecordPtrTtl("TTL_REPLACE_ME"),
+				Config: testAccRecordPtrTtl("2001::26", "ptr.example.com", "default", 300, "true"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ttl", "TTL_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "ttl", "300"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccRecordPtrTtl("TTL_UPDATE_REPLACE_ME"),
+				Config: testAccRecordPtrTtl("2001::26", "ptr.example.com", "default", 600, "true"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ttl", "TTL_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "ttl", "600"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -472,18 +474,18 @@ func TestAccRecordPtrResource_UseTtl(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccRecordPtrUseTtl("USE_TTL_REPLACE_ME"),
+				Config: testAccRecordPtrUseTtl("2001::27", "ptr.example.com", "default", "true", 300),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "use_ttl", "USE_TTL_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "use_ttl", "true"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccRecordPtrUseTtl("USE_TTL_UPDATE_REPLACE_ME"),
+				Config: testAccRecordPtrUseTtl("2001::27", "ptr.example.com", "default", "false", 300),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "use_ttl", "USE_TTL_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "use_ttl", "false"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -501,18 +503,18 @@ func TestAccRecordPtrResource_View(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccRecordPtrView("VIEW_REPLACE_ME"),
+				Config: testAccRecordPtrView("192.168.10.35", "ptr.example.com", "custom_view"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "view", "VIEW_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "view", "custom_view"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccRecordPtrView("VIEW_UPDATE_REPLACE_ME"),
+				Config: testAccRecordPtrView("192.168.10.35", "ptr.example.com", "custom_view"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "view", "VIEW_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "view", "custom_view"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -610,15 +612,16 @@ resource "nios_dns_record_ptr" "test_creator" {
 `, Name, Ptrdname, View, Creator)
 }
 
-func testAccRecordPtrDdnsPrincipal(Name, Ptrdname, View, DdnsPrincipal string) string {
+func testAccRecordPtrDdnsPrincipal(Name, Ptrdname, View, Creator, DdnsPrincipal string) string {
 	return fmt.Sprintf(`
 resource "nios_dns_record_ptr" "test_ddns_principal" {
 	name = %q
 	ptrdname = %q
 	view = %q
+	creator = %q
     ddns_principal = %q
 }
-`, Name, Ptrdname, View, DdnsPrincipal)
+`, Name, Ptrdname, View, Creator, DdnsPrincipal)
 }
 
 func testAccRecordPtrDdnsProtected(Name, Ptrdname, View, DdnsProtected string) string {
@@ -643,15 +646,22 @@ resource "nios_dns_record_ptr" "test_disable" {
 `, Name, Ptrdname, View, disable)
 }
 
-func testAccRecordPtrExtAttrs(Name, Ptrdname, View, extAttrs string) string {
+func testAccRecordPtrExtAttrs(Name, Ptrdname, View string, extAttrs map[string]string) string {
+	extattrsStr := "{\n"
+	for k, v := range extAttrs {
+		extattrsStr += fmt.Sprintf(`
+  %s = %q
+`, k, v)
+	}
+	extattrsStr += "\t}"
 	return fmt.Sprintf(`
 resource "nios_dns_record_ptr" "test_extattrs" {
 	name = %q
 	ptrdname = %q
 	view = %q
-    extattrs = %q
+    extattrs = %s
 }
-`, Name, Ptrdname, View, extAttrs)
+`, Name, Ptrdname, View, extattrsStr)
 }
 
 func testAccRecordPtrForbidReclamation(Name, Ptrdname, View, forbidReclamation string) string {
@@ -686,6 +696,7 @@ resource "nios_dns_record_ptr" "test_func_call" {
 		"object_parameters" = {
 			"network" = %q
 			"network_view" = "default"
+		}
 	}
 	ptrdname = %q
 	view = %q
@@ -704,42 +715,56 @@ resource "nios_dns_record_ptr" "test_ipv6addr" {
 `, ipv6addr, ptrdname, view)
 }
 
-func testAccRecordPtrName(name string) string {
+func testAccRecordPtrName(name, ptrdname, view string) string {
 	return fmt.Sprintf(`
 resource "nios_dns_record_ptr" "test_name" {
     name = %q
+	ptrdname = %q
+	view = %q
 }
-`, name)
+`, name, ptrdname, view)
 }
 
-func testAccRecordPtrPtrdname(ptrdname string) string {
+func testAccRecordPtrPtrdname(ptrdname, ipv4addr, view string) string {
 	return fmt.Sprintf(`
 resource "nios_dns_record_ptr" "test_ptrdname" {
     ptrdname = %q
+	ipv4addr = %q
+	view = %q
 }
-`, ptrdname)
+`, ptrdname, ipv4addr, view)
 }
 
-func testAccRecordPtrTtl(ttl string) string {
+func testAccRecordPtrTtl(ipv6addr, ptrdname, view string, ttl int32, useTtl string) string {
 	return fmt.Sprintf(`
 resource "nios_dns_record_ptr" "test_ttl" {
-    ttl = %q
+	ipv6addr = %q
+	ptrdname = %q
+	view = %q
+    ttl = %d
+	use_ttl = %q
 }
-`, ttl)
+`, ipv6addr, ptrdname, view, ttl, useTtl)
 }
 
-func testAccRecordPtrUseTtl(useTtl string) string {
+func testAccRecordPtrUseTtl(ipv6addr, ptrdname, view, useTtl string, ttl int32) string {
 	return fmt.Sprintf(`
 resource "nios_dns_record_ptr" "test_use_ttl" {
+	ipv6addr = %q
+	ptrdname = %q
+	view = %q
     use_ttl = %q
+	ttl = %d
 }
-`, useTtl)
+`, ipv6addr, ptrdname, view, useTtl, ttl)
 }
 
-func testAccRecordPtrView(view string) string {
+func testAccRecordPtrView(ipv4addr, ptrdname, view string) string {
 	return fmt.Sprintf(`
 resource "nios_dns_record_ptr" "test_view" {
+	ipv4addr = %q
+	ptrdname = %q
     view = %q
 }
-`, view)
+`, ipv4addr, ptrdname, view)
 }
