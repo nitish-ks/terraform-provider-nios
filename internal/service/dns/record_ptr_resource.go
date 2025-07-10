@@ -16,7 +16,6 @@ import (
 	"github.com/Infoblox-CTO/infoblox-nios-terraform/internal/utils"
 )
 
-// TODO : Add readable attributes for the resource
 var readableAttributesForRecordPtr = "aws_rte53_record_info,cloud_info,comment,creation_time,creator,ddns_principal,ddns_protected,disable,discovered_data,dns_name,dns_ptrdname,extattrs,forbid_reclamation,ipv4addr,ipv6addr,last_queried,ms_ad_user_data,name,ptrdname,reclaimable,shared_record_group,ttl,use_ttl,view,zone"
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -211,35 +210,37 @@ func (r *RecordPtrResource) ReadByExtAttrs(ctx context.Context, data *RecordPtrM
 		"Terraform Internal ID": internalId,
 	}
 
-	apiRes, httpRes, err := r.client.DNSAPI.
+	apiRes, _, err := r.client.DNSAPI.
 		RecordPtrAPI.
 		List(ctx).
 		Extattrfilter(idMap).
 		ReturnAsObject(1).
 		ReturnFieldsPlus(readableAttributesForRecordPtr).
 		Execute()
-
 	if err != nil {
-		if httpRes != nil && httpRes.StatusCode == http.StatusNotFound {
-			resp.State.RemoveResource(ctx)
-			return true
-		}
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read RecordPtr by extattrs, got error: %s", err))
 		return true
 	}
 
-	if len(apiRes.ListRecordPtrResponseObject.GetResult()) > 0 {
-		res := apiRes.ListRecordPtrResponseObject.GetResult()[0]
+	results := apiRes.ListRecordPtrResponseObject.GetResult()
 
-		// Remove inherited external attributes and check for errors
-		res.ExtAttrs, diags = RemoveInheritedExtAttrs(ctx, data.ExtAttrs, *res.ExtAttrs)
-		if diags.HasError() {
-			return true
-		}
-
-		data.Flatten(ctx, &res, &resp.Diagnostics)
-		resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+	// If the list is empty, the resource no longer exists so remove it from state
+	if len(results) == 0 {
+		resp.State.RemoveResource(ctx)
+		return true
 	}
+
+	res := results[0]
+
+	// Remove inherited external attributes and check for errors
+	res.ExtAttrs, diags = RemoveInheritedExtAttrs(ctx, data.ExtAttrs, *res.ExtAttrs)
+	if diags.HasError() {
+		return true
+	}
+
+	data.Flatten(ctx, &res, &resp.Diagnostics)
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+
 	return true
 }
 
@@ -333,7 +334,6 @@ func (r *RecordPtrResource) addInternalIDToExtAttrs(ctx context.Context, data *R
 				internalId = tIdStr.ValueString()
 			}
 		}
-
 	}
 
 	if internalId == "" {
