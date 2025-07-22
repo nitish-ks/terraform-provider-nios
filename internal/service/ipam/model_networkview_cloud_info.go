@@ -99,7 +99,6 @@ func FlattenNetworkviewCloudInfo(ctx context.Context, from *ipam.NetworkviewClou
 	}
 	m := NetworkviewCloudInfoModel{}
 	m.Flatten(ctx, from, diags)
-	m.ExtAttrs = m.ExtAttrsAll
 	t, d := types.ObjectValueFrom(ctx, NetworkviewCloudInfoAttrTypes, m)
 	diags.Append(d...)
 	return t

@@ -62,7 +62,6 @@ func FlattenNetworkviewAssociatedMembers(ctx context.Context, from *ipam.Network
 	}
 	m := NetworkviewAssociatedMembersModel{}
 	m.Flatten(ctx, from, diags)
-	m.ExtAttrs = m.ExtAttrsAll
 	t, d := types.ObjectValueFrom(ctx, NetworkviewAssociatedMembersAttrTypes, m)
 	diags.Append(d...)
 	return t

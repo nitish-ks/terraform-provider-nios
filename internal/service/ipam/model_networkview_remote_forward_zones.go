@@ -106,7 +106,6 @@ func FlattenNetworkviewRemoteForwardZones(ctx context.Context, from *ipam.Networ
 	}
 	m := NetworkviewRemoteForwardZonesModel{}
 	m.Flatten(ctx, from, diags)
-	m.ExtAttrs = m.ExtAttrsAll
 	t, d := types.ObjectValueFrom(ctx, NetworkviewRemoteForwardZonesAttrTypes, m)
 	diags.Append(d...)
 	return t

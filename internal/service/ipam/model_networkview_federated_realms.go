@@ -64,7 +64,6 @@ func FlattenNetworkviewFederatedRealms(ctx context.Context, from *ipam.Networkvi
 	}
 	m := NetworkviewFederatedRealmsModel{}
 	m.Flatten(ctx, from, diags)
-	m.ExtAttrs = m.ExtAttrsAll
 	t, d := types.ObjectValueFrom(ctx, NetworkviewFederatedRealmsAttrTypes, m)
 	diags.Append(d...)
 	return t

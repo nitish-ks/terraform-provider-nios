@@ -71,7 +71,6 @@ func FlattenNetworkviewcloudinfoDelegatedMember(ctx context.Context, from *ipam.
 	}
 	m := NetworkviewcloudinfoDelegatedMemberModel{}
 	m.Flatten(ctx, from, diags)
-	m.ExtAttrs = m.ExtAttrsAll
 	t, d := types.ObjectValueFrom(ctx, NetworkviewcloudinfoDelegatedMemberAttrTypes, m)
 	diags.Append(d...)
 	return t

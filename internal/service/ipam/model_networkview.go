@@ -6,6 +6,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	schema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
@@ -23,6 +25,7 @@ type NetworkviewModel struct {
 	DdnsDnsView          types.String `tfsdk:"ddns_dns_view"`
 	DdnsZonePrimaries    types.List   `tfsdk:"ddns_zone_primaries"`
 	ExtAttrs             types.Map    `tfsdk:"extattrs"`
+	ExtAttrsAll          types.Map    `tfsdk:"extattrs_all"`
 	FederatedRealms      types.List   `tfsdk:"federated_realms"`
 	InternalForwardZones types.List   `tfsdk:"internal_forward_zones"`
 	IsDefault            types.Bool   `tfsdk:"is_default"`
@@ -42,6 +45,7 @@ var NetworkviewAttrTypes = map[string]attr.Type{
 	"ddns_dns_view":          types.StringType,
 	"ddns_zone_primaries":    types.ListType{ElemType: types.ObjectType{AttrTypes: NetworkviewDdnsZonePrimariesAttrTypes}},
 	"extattrs":               types.MapType{ElemType: types.StringType},
+	"extattrs_all":           types.MapType{ElemType: types.StringType},
 	"federated_realms":       types.ListType{ElemType: types.ObjectType{AttrTypes: NetworkviewFederatedRealmsAttrTypes}},
 	"internal_forward_zones": types.ListType{ElemType: types.StringType},
 	"is_default":             types.BoolType,
@@ -53,10 +57,10 @@ var NetworkviewAttrTypes = map[string]attr.Type{
 }
 
 var NetworkviewResourceSchemaAttributes = map[string]schema.Attribute{
-	"ref": schema.StringAttribute{
-		Optional:            true,
-		MarkdownDescription: "The reference to the object.",
-	},
+   "ref": schema.StringAttribute{
+        Computed: true,
+        MarkdownDescription: "The reference to the object.",
+    },
 	"associated_dns_views": schema.ListAttribute{
 		ElementType:         types.StringType,
 		Computed:            true,
@@ -71,14 +75,17 @@ var NetworkviewResourceSchemaAttributes = map[string]schema.Attribute{
 	},
 	"cloud_info": schema.SingleNestedAttribute{
 		Attributes: NetworkviewCloudInfoResourceSchemaAttributes,
-		Optional:   true,
+		Optional:   		 true,
+		Computed:            true,
 	},
 	"comment": schema.StringAttribute{
 		Optional:            true,
+		Computed:            true,
 		MarkdownDescription: "Comment for the network view; maximum 256 characters.",
 	},
 	"ddns_dns_view": schema.StringAttribute{
 		Optional:            true,
+		Computed:            true,
 		MarkdownDescription: "DNS views that will receive the updates if you enable the appliance to send updates to Grid members.",
 	},
 	"ddns_zone_primaries": schema.ListNestedAttribute{
@@ -86,23 +93,33 @@ var NetworkviewResourceSchemaAttributes = map[string]schema.Attribute{
 			Attributes: NetworkviewDdnsZonePrimariesResourceSchemaAttributes,
 		},
 		Optional:            true,
+		Computed:            true,
 		MarkdownDescription: "An array of Ddns Zone Primary dhcpddns structs that lists the information of primary zone to wich DDNS updates should be sent.",
 	},
 	"extattrs": schema.MapAttribute{
-		ElementType:         types.StringType,
 		Optional:            true,
-		MarkdownDescription: "Extensible attributes associated with the object. For valid values for extensible attributes, see {extattrs:values}.",
+		Computed:            true,
+		MarkdownDescription: "Extensible attributes associated with the object.",
+		ElementType:         types.StringType,
+		Default:             mapdefault.StaticValue(types.MapNull(types.StringType)),
+	},
+	"extattrs_all": schema.MapAttribute{
+		Computed:            true,
+		MarkdownDescription: "Extensible attributes associated with the object , including default attributes.",
+		ElementType:         types.StringType,
 	},
 	"federated_realms": schema.ListNestedAttribute{
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: NetworkviewFederatedRealmsResourceSchemaAttributes,
 		},
 		Optional:            true,
+		Computed:            true,
 		MarkdownDescription: "This field contains the federated realms associated to this network view",
 	},
 	"internal_forward_zones": schema.ListAttribute{
 		ElementType:         types.StringType,
 		Optional:            true,
+		Computed:            true,
 		MarkdownDescription: "The list of linked authoritative DNS zones.",
 	},
 	"is_default": schema.BoolAttribute{
@@ -111,14 +128,17 @@ var NetworkviewResourceSchemaAttributes = map[string]schema.Attribute{
 	},
 	"mgm_private": schema.BoolAttribute{
 		Optional:            true,
+		Computed:            true,
+		Default:             booldefault.StaticBool(false),
 		MarkdownDescription: "This field controls whether this object is synchronized with the Multi-Grid Master. If this field is set to True, objects are not synchronized.",
 	},
 	"ms_ad_user_data": schema.SingleNestedAttribute{
 		Attributes: NetworkviewMsAdUserDataResourceSchemaAttributes,
-		Optional:   true,
+		Computed:            true,
+		MarkdownDescription: "The Microsoft Active Directory user related information.",
 	},
 	"name": schema.StringAttribute{
-		Optional:            true,
+		Required:            true,
 		MarkdownDescription: "Name of the network view.",
 	},
 	"remote_forward_zones": schema.ListNestedAttribute{
@@ -126,6 +146,7 @@ var NetworkviewResourceSchemaAttributes = map[string]schema.Attribute{
 			Attributes: NetworkviewRemoteForwardZonesResourceSchemaAttributes,
 		},
 		Optional:            true,
+		Computed:            true,
 		MarkdownDescription: "The list of forward-mapping zones to which the DHCP server sends the updates.",
 	},
 	"remote_reverse_zones": schema.ListNestedAttribute{
@@ -133,6 +154,7 @@ var NetworkviewResourceSchemaAttributes = map[string]schema.Attribute{
 			Attributes: NetworkviewRemoteReverseZonesResourceSchemaAttributes,
 		},
 		Optional:            true,
+		Computed:            true,
 		MarkdownDescription: "The list of reverse-mapping zones to which the DHCP server sends the updates.",
 	},
 }
@@ -159,7 +181,7 @@ func (m *NetworkviewModel) Expand(ctx context.Context, diags *diag.Diagnostics) 
 		Comment:              flex.ExpandStringPointer(m.Comment),
 		DdnsDnsView:          flex.ExpandStringPointer(m.DdnsDnsView),
 		DdnsZonePrimaries:    flex.ExpandFrameworkListNestedBlock(ctx, m.DdnsZonePrimaries, diags, ExpandNetworkviewDdnsZonePrimaries),
-		ExtAttrs:             flex.ExpandFrameworkMapString(ctx, m.ExtAttrs, diags),
+		ExtAttrs:             ExpandExtAttr(ctx, m.ExtAttrs, diags),
 		FederatedRealms:      flex.ExpandFrameworkListNestedBlock(ctx, m.FederatedRealms, diags, ExpandNetworkviewFederatedRealms),
 		InternalForwardZones: flex.ExpandFrameworkListString(ctx, m.InternalForwardZones, diags),
 		MgmPrivate:           flex.ExpandBoolPointer(m.MgmPrivate),
@@ -197,7 +219,7 @@ func (m *NetworkviewModel) Flatten(ctx context.Context, from *ipam.Networkview, 
 	m.Comment = flex.FlattenStringPointer(from.Comment)
 	m.DdnsDnsView = flex.FlattenStringPointer(from.DdnsDnsView)
 	m.DdnsZonePrimaries = flex.FlattenFrameworkListNestedBlock(ctx, from.DdnsZonePrimaries, NetworkviewDdnsZonePrimariesAttrTypes, diags, FlattenNetworkviewDdnsZonePrimaries)
-	m.ExtAttrs = flex.FlattenFrameworkMapString(ctx, from.ExtAttrs, diags)
+	m.ExtAttrsAll = FlattenExtAttr(ctx, *from.ExtAttrs, diags)
 	m.FederatedRealms = flex.FlattenFrameworkListNestedBlock(ctx, from.FederatedRealms, NetworkviewFederatedRealmsAttrTypes, diags, FlattenNetworkviewFederatedRealms)
 	m.InternalForwardZones = flex.FlattenFrameworkListString(ctx, from.InternalForwardZones, diags)
 	m.IsDefault = types.BoolPointerValue(from.IsDefault)
