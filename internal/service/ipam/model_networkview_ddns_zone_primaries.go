@@ -16,7 +16,7 @@ import (
 
 type NetworkviewDdnsZonePrimariesModel struct {
 	ZoneMatch      types.String `tfsdk:"zone_match"`
-	DnsGridZone    types.String `tfsdk:"dns_grid_zone"`
+	DnsGridZone    types.Object `tfsdk:"dns_grid_zone"`
 	DnsGridPrimary types.String `tfsdk:"dns_grid_primary"`
 	DnsExtZone     types.String `tfsdk:"dns_ext_zone"`
 	DnsExtPrimary  types.String `tfsdk:"dns_ext_primary"`
@@ -24,7 +24,7 @@ type NetworkviewDdnsZonePrimariesModel struct {
 
 var NetworkviewDdnsZonePrimariesAttrTypes = map[string]attr.Type{
 	"zone_match":       types.StringType,
-	"dns_grid_zone":    types.StringType,
+	"dns_grid_zone":    types.ObjectType{AttrTypes: NetworkviewDdnsZonePrimariesDnsGridZoneAttrTypes},
 	"dns_grid_primary": types.StringType,
 	"dns_ext_zone":     types.StringType,
 	"dns_ext_primary":  types.StringType,
@@ -33,22 +33,26 @@ var NetworkviewDdnsZonePrimariesAttrTypes = map[string]attr.Type{
 var NetworkviewDdnsZonePrimariesResourceSchemaAttributes = map[string]schema.Attribute{
 	"zone_match": schema.StringAttribute{
 		Optional:            true,
+		Computed:			 true,
 		MarkdownDescription: "Indicate matching type.",
 	},
-	"dns_grid_zone": schema.StringAttribute{
-		Optional:            true,
-		MarkdownDescription: "The ref of a DNS zone.",
+	"dns_grid_zone": schema.SingleNestedAttribute{
+		Attributes: NetworkviewDdnsZonePrimariesDnsGridZoneResourceSchemaAttributes,
+		Optional:   true,
 	},
 	"dns_grid_primary": schema.StringAttribute{
 		Optional:            true,
+		Computed:			 true,
 		MarkdownDescription: "The name of a Grid member.",
 	},
 	"dns_ext_zone": schema.StringAttribute{
 		Optional:            true,
+		Computed:			 true,
 		MarkdownDescription: "The name of external zone in FQDN format.",
 	},
 	"dns_ext_primary": schema.StringAttribute{
 		Optional:            true,
+		Computed:			 true,
 		MarkdownDescription: "The IP address of the External server. Valid when zone_match is \"EXTERNAL\" or \"ANY_EXTERNAL\".",
 	},
 }
@@ -71,7 +75,7 @@ func (m *NetworkviewDdnsZonePrimariesModel) Expand(ctx context.Context, diags *d
 	}
 	to := &ipam.NetworkviewDdnsZonePrimaries{
 		ZoneMatch:      flex.ExpandStringPointer(m.ZoneMatch),
-		DnsGridZone:    flex.ExpandStringPointer(m.DnsGridZone),
+		DnsGridZone:    ExpandNetworkviewDdnsZonePrimariesDnsGridZone(ctx, m.DnsGridZone, diags),
 		DnsGridPrimary: flex.ExpandStringPointer(m.DnsGridPrimary),
 		DnsExtZone:     flex.ExpandStringPointer(m.DnsExtZone),
 		DnsExtPrimary:  flex.ExpandStringPointer(m.DnsExtPrimary),
@@ -98,7 +102,7 @@ func (m *NetworkviewDdnsZonePrimariesModel) Flatten(ctx context.Context, from *i
 		*m = NetworkviewDdnsZonePrimariesModel{}
 	}
 	m.ZoneMatch = flex.FlattenStringPointer(from.ZoneMatch)
-	m.DnsGridZone = flex.FlattenStringPointer(from.DnsGridZone)
+	m.DnsGridZone = FlattenNetworkviewDdnsZonePrimariesDnsGridZone(ctx, from.DnsGridZone, diags)
 	m.DnsGridPrimary = flex.FlattenStringPointer(from.DnsGridPrimary)
 	m.DnsExtZone = flex.FlattenStringPointer(from.DnsExtZone)
 	m.DnsExtPrimary = flex.FlattenStringPointer(from.DnsExtPrimary)

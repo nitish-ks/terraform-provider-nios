@@ -12,6 +12,9 @@ import (
 	"github.com/infobloxopen/infoblox-nios-go-client/ipam"
 
 	"github.com/infobloxopen/terraform-provider-nios/internal/flex"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 )
 
 type NetworkviewRemoteForwardZonesModel struct {
@@ -38,35 +41,48 @@ var NetworkviewRemoteForwardZonesAttrTypes = map[string]attr.Type{
 
 var NetworkviewRemoteForwardZonesResourceSchemaAttributes = map[string]schema.Attribute{
 	"fqdn": schema.StringAttribute{
-		Optional:            true,
+		Required:            true,
 		MarkdownDescription: "The FQDN of the remote server.",
 	},
 	"server_address": schema.StringAttribute{
-		Optional:            true,
+		Required:            true,
 		MarkdownDescription: "The remote server IP address.",
 	},
 	"gss_tsig_dns_principal": schema.StringAttribute{
 		Optional:            true,
+		Computed: 			 true,
 		MarkdownDescription: "The principal name in which GSS-TSIG for dynamic updates is enabled.",
 	},
 	"gss_tsig_domain": schema.StringAttribute{
 		Optional:            true,
+		Computed: 			 true,
 		MarkdownDescription: "The domain in which GSS-TSIG for dynamic updates is enabled.",
 	},
 	"tsig_key": schema.StringAttribute{
 		Optional:            true,
+		Computed: 			 true,
 		MarkdownDescription: "The TSIG key value.",
 	},
 	"tsig_key_alg": schema.StringAttribute{
 		Optional:            true,
+		Computed: 			 true,
+		Validators: []validator.String{
+			stringvalidator.OneOf("HMAC-MD5", "HMAC-SHA256"),
+		},
 		MarkdownDescription: "The TSIG key alorithm name.",
 	},
 	"tsig_key_name": schema.StringAttribute{
 		Optional:            true,
+		Computed: 			 true,
 		MarkdownDescription: "The name of the TSIG key. The key name entered here must match the TSIG key name on the external name server.",
 	},
 	"key_type": schema.StringAttribute{
 		Optional:            true,
+		Computed: 			 true,
+		Validators: []validator.String{
+			stringvalidator.OneOf("GSS-TSIG", "NONE", "TSIG"),
+		},
+		Default:             stringdefault.StaticString("NONE"),
 		MarkdownDescription: "The key type to be used.",
 	},
 }

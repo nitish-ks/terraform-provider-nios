@@ -17,9 +17,17 @@ import (
 
 var readableAttributesForNetworkview = "associated_dns_views,associated_members,cloud_info,comment,ddns_dns_view,ddns_zone_primaries,extattrs,internal_forward_zones,is_default,mgm_private,ms_ad_user_data,name,remote_forward_zones,remote_reverse_zones"
 
+// TODO: Prerequisites
+// Pre-provision CP Member with Cloud API license
+// CP Member Name : "infoblox.cloudmem"
+// CP Member IPv4 Address : "172.172.172.172"
+// CP Member IPv6 : "2001::123"
+// Create Auth Zone: "first.com", "second.com" with Grid Primary: "infoblox.cloudmem"
+
 func TestAccNetworkviewResource_basic(t *testing.T) {
 	var resourceName = "nios_ipam_networkview.test"
 	var v ipam.Networkview
+	name := acctest.RandomNameWithPrefix("test-nview")
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -27,11 +35,11 @@ func TestAccNetworkviewResource_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccNetworkviewBasicConfig(),
+				Config: testAccNetworkviewBasicConfig(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					// TODO: check and validate these
-					// Test fields with default value
+					resource.TestCheckResourceAttr(resourceName, "name", name),
+					resource.TestCheckResourceAttr(resourceName, "mgm_private", "false"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -42,6 +50,7 @@ func TestAccNetworkviewResource_basic(t *testing.T) {
 func TestAccNetworkviewResource_disappears(t *testing.T) {
 	resourceName := "nios_ipam_networkview.test"
 	var v ipam.Networkview
+	name := acctest.RandomNameWithPrefix("test-nview")
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -49,7 +58,7 @@ func TestAccNetworkviewResource_disappears(t *testing.T) {
 		CheckDestroy:             testAccCheckNetworkviewDestroy(context.Background(), &v),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccNetworkviewBasicConfig(),
+				Config: testAccNetworkviewBasicConfig(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
 					testAccCheckNetworkviewDisappears(context.Background(), &v),
@@ -60,38 +69,13 @@ func TestAccNetworkviewResource_disappears(t *testing.T) {
 	})
 }
 
-func TestAccNetworkviewResource_Ref(t *testing.T) {
-	var resourceName = "nios_ipam_networkview.test_ref"
-	var v ipam.Networkview
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
-		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			// Create and Read
-			{
-				Config: testAccNetworkviewRef("REF_REPLACE_ME"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ref", "REF_REPLACE_ME"),
-				),
-			},
-			// Update and Read
-			{
-				Config: testAccNetworkviewRef("REF_UPDATE_REPLACE_ME"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ref", "REF_UPDATE_REPLACE_ME"),
-				),
-			},
-			// Delete testing automatically occurs in TestCase
-		},
-	})
-}
-
 func TestAccNetworkviewResource_CloudInfo(t *testing.T) {
 	var resourceName = "nios_ipam_networkview.test_cloud_info"
 	var v ipam.Networkview
+	name := acctest.RandomNameWithPrefix("test-nview")
+	member_name := "infoblox.cloudmem"
+	member_ipv4 := "172.172.172.172"
+	member_ipv6 := "2001::123"
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -99,20 +83,27 @@ func TestAccNetworkviewResource_CloudInfo(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccNetworkviewCloudInfo("CLOUD_INFO_REPLACE_ME"),
+				Config: testAccNetworkviewCloudInfo(name, member_name, member_ipv4, member_ipv6),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "cloud_info", "CLOUD_INFO_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "name", name),
+					resource.TestCheckResourceAttr(resourceName, "cloud_info.authority_type", "GM"),
+					resource.TestCheckResourceAttr(resourceName, "cloud_info.delegated_scope", "ROOT"),
+					resource.TestCheckResourceAttr(resourceName, "cloud_info.owned_by_adaptor", "false"),
+					resource.TestCheckResourceAttr(resourceName, "cloud_info.delegated_member.name", member_name),
+					resource.TestCheckResourceAttr(resourceName, "cloud_info.delegated_member.ipv4addr", member_ipv4),
+					resource.TestCheckResourceAttr(resourceName, "cloud_info.delegated_member.ipv6addr", member_ipv6),
 				),
 			},
 			// Update and Read
-			{
-				Config: testAccNetworkviewCloudInfo("CLOUD_INFO_UPDATE_REPLACE_ME"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "cloud_info", "CLOUD_INFO_UPDATE_REPLACE_ME"),
-				),
-			},
+			// TODO: unset the delegated_member using 'null' and delegate to a different member
+			// {
+			// 	Config: testAccNetworkviewCloudInfo("CLOUD_INFO_UPDATE_REPLACE_ME"),
+			// 	Check: resource.ComposeTestCheckFunc(
+			// 		testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
+			// 		resource.TestCheckResourceAttr(resourceName, "cloud_info", "CLOUD_INFO_UPDATE_REPLACE_ME"),
+			// 	),
+			// },
 			// Delete testing automatically occurs in TestCase
 		},
 	})
@@ -121,6 +112,7 @@ func TestAccNetworkviewResource_CloudInfo(t *testing.T) {
 func TestAccNetworkviewResource_Comment(t *testing.T) {
 	var resourceName = "nios_ipam_networkview.test_comment"
 	var v ipam.Networkview
+	name := acctest.RandomNameWithPrefix("test-nview")
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -128,18 +120,18 @@ func TestAccNetworkviewResource_Comment(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccNetworkviewComment("COMMENT_REPLACE_ME"),
+				Config: testAccNetworkviewComment(name, "This is a new network view"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "comment", "COMMENT_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "comment", "This is a new network view"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccNetworkviewComment("COMMENT_UPDATE_REPLACE_ME"),
+				Config: testAccNetworkviewComment(name, "This is an modified network view"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "comment", "COMMENT_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "comment", "This is an modified network view"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -150,6 +142,8 @@ func TestAccNetworkviewResource_Comment(t *testing.T) {
 func TestAccNetworkviewResource_DdnsDnsView(t *testing.T) {
 	var resourceName = "nios_ipam_networkview.test_ddns_dns_view"
 	var v ipam.Networkview
+	name := acctest.RandomNameWithPrefix("test-nview")
+	DdnsDnsView := "default." + name
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -157,18 +151,18 @@ func TestAccNetworkviewResource_DdnsDnsView(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccNetworkviewDdnsDnsView("DDNS_DNS_VIEW_REPLACE_ME"),
+				Config: testAccNetworkviewDdnsDnsView(name, "null"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ddns_dns_view", "DDNS_DNS_VIEW_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "ddns_dns_view", DdnsDnsView),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccNetworkviewDdnsDnsView("DDNS_DNS_VIEW_UPDATE_REPLACE_ME"),
+				Config: testAccNetworkviewDdnsDnsView(name, "\""+DdnsDnsView+"\""),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ddns_dns_view", "DDNS_DNS_VIEW_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "ddns_dns_view", DdnsDnsView),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -179,6 +173,33 @@ func TestAccNetworkviewResource_DdnsDnsView(t *testing.T) {
 func TestAccNetworkviewResource_DdnsZonePrimaries(t *testing.T) {
 	var resourceName = "nios_ipam_networkview.test_ddns_zone_primaries"
 	var v ipam.Networkview
+	name := acctest.RandomNameWithPrefix("test-nview")
+	DdnsZonePrimariesCreate := `[
+        {
+        dns_grid_primary ="infoblox.cloudmem",
+        zone_match = "GRID",
+        dns_grid_zone = {
+            ref= "zone_auth/ZG5zLnpvbmUkLl9kZWZhdWx0LmNvbS5maXJzdA:first.com/default"
+            }
+        }
+	]`
+
+	DdnsZonePrimariesUpdate := `[
+        {
+        dns_grid_primary ="infoblox.cloudmem",
+        zone_match = "GRID",
+        dns_grid_zone = {
+            ref= "zone_auth/ZG5zLnpvbmUkLl9kZWZhdWx0LmNvbS5maXJzdA:first.com/default"
+            }
+        },
+        {
+        dns_grid_primary ="infoblox.cloudmem",
+        zone_match = "GRID",
+        dns_grid_zone = {
+            ref= "zone_auth/ZG5zLnpvbmUkLl9kZWZhdWx0LmNvbS5zZWNvbmQ:second.com/default"
+            }
+        },
+	]`
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -186,18 +207,22 @@ func TestAccNetworkviewResource_DdnsZonePrimaries(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccNetworkviewDdnsZonePrimaries("DDNS_ZONE_PRIMARIES_REPLACE_ME"),
+				Config: testAccNetworkviewDdnsZonePrimaries(name, DdnsZonePrimariesCreate),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ddns_zone_primaries", "DDNS_ZONE_PRIMARIES_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "ddns_zone_primaries.0.dns_grid_primary", "infoblox.cloudmem"),
+					resource.TestCheckResourceAttr(resourceName, "ddns_zone_primaries.0.zone_match", "GRID"),
+					resource.TestCheckResourceAttr(resourceName, "ddns_zone_primaries.0.dns_grid_zone.ref", "zone_auth/ZG5zLnpvbmUkLl9kZWZhdWx0LmNvbS5maXJzdA:first.com/default"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccNetworkviewDdnsZonePrimaries("DDNS_ZONE_PRIMARIES_UPDATE_REPLACE_ME"),
+				Config: testAccNetworkviewDdnsZonePrimaries(name, DdnsZonePrimariesUpdate),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ddns_zone_primaries", "DDNS_ZONE_PRIMARIES_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "ddns_zone_primaries.1.dns_grid_primary", "infoblox.cloudmem"),
+					resource.TestCheckResourceAttr(resourceName, "ddns_zone_primaries.1.zone_match", "GRID"),
+					resource.TestCheckResourceAttr(resourceName, "ddns_zone_primaries.1.dns_grid_zone.ref", "zone_auth/ZG5zLnpvbmUkLl9kZWZhdWx0LmNvbS5zZWNvbmQ:second.com/default"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -208,6 +233,9 @@ func TestAccNetworkviewResource_DdnsZonePrimaries(t *testing.T) {
 func TestAccNetworkviewResource_ExtAttrs(t *testing.T) {
 	var resourceName = "nios_ipam_networkview.test_extattrs"
 	var v ipam.Networkview
+	name := acctest.RandomNameWithPrefix("nview")
+	extAttrValue1 := acctest.RandomName()
+	extAttrValue2 := acctest.RandomName()
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -215,18 +243,18 @@ func TestAccNetworkviewResource_ExtAttrs(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccNetworkviewExtAttrs("EXT_ATTRS_REPLACE_ME"),
+				Config: testAccNetworkviewExtAttrs(name, map[string]string{"Site": extAttrValue1}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "extattrs", "EXT_ATTRS_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "extattrs.Site", extAttrValue1),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccNetworkviewExtAttrs("EXT_ATTRS_UPDATE_REPLACE_ME"),
+				Config: testAccNetworkviewExtAttrs(name, map[string]string{"Site": extAttrValue2}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "extattrs", "EXT_ATTRS_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "extattrs.Site", extAttrValue2),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -234,67 +262,99 @@ func TestAccNetworkviewResource_ExtAttrs(t *testing.T) {
 	})
 }
 
-func TestAccNetworkviewResource_FederatedRealms(t *testing.T) {
-	var resourceName = "nios_ipam_networkview.test_federated_realms"
-	var v ipam.Networkview
+// TODO: Requires UDDI configs
+// func TestAccNetworkviewResource_FederatedRealms(t *testing.T) {
+// 	var resourceName = "nios_ipam_networkview.test_federated_realms"
+// 	var v ipam.Networkview
+// 	name := acctest.RandomNameWithPrefix("test-nview")
+// 	FederatedRealmsCreate := `[
+//         {
+//         id = "11",
+//         name = "federated_realm_1",
+// 		},
+// 	]`
+// 	FederatedRealmsUpdate := `[
+// 		{
+// 		id = "22",
+// 		name = "federated_realm_2",
+// 		},
+// 	]`
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
-		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			// Create and Read
-			{
-				Config: testAccNetworkviewFederatedRealms("FEDERATED_REALMS_REPLACE_ME"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "federated_realms", "FEDERATED_REALMS_REPLACE_ME"),
-				),
-			},
-			// Update and Read
-			{
-				Config: testAccNetworkviewFederatedRealms("FEDERATED_REALMS_UPDATE_REPLACE_ME"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "federated_realms", "FEDERATED_REALMS_UPDATE_REPLACE_ME"),
-				),
-			},
-			// Delete testing automatically occurs in TestCase
-		},
-	})
-}
+// 	resource.ParallelTest(t, resource.TestCase{
+// 		PreCheck:                 func() { acctest.PreCheck(t) },
+// 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+// 		Steps: []resource.TestStep{
+// 			// Create and Read
+// 			{
+// 				Config: testAccNetworkviewFederatedRealms(name, FederatedRealmsCreate),
+// 				Check: resource.ComposeTestCheckFunc(
+// 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
+// 					resource.TestCheckResourceAttr(resourceName, "federated_realms.0.id", "11"),
+// 					resource.TestCheckResourceAttr(resourceName, "federated_realms.0.name", "federated_realm_1"),
+// 				),
+// 			},
+// 			// Update and Read
+// 			{
+// 				Config: testAccNetworkviewFederatedRealms(name, FederatedRealmsUpdate),
+// 				Check: resource.ComposeTestCheckFunc(
+// 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
+// 					resource.TestCheckResourceAttr(resourceName, "federated_realms.0.id", "22"),
+// 					resource.TestCheckResourceAttr(resourceName, "federated_realms.0.name", "federated_realm_2"),
+// 				),
+// 			},
+// 			// Delete testing automatically occurs in TestCase
+// 		},
+// 	})
+// }
 
-func TestAccNetworkviewResource_InternalForwardZones(t *testing.T) {
-	var resourceName = "nios_ipam_networkview.test_internal_forward_zones"
-	var v ipam.Networkview
+// TODO: Prerequisite zones to be created after network view creation
+// func TestAccNetworkviewResource_InternalForwardZones(t *testing.T) {
+// 	var resourceName = "nios_ipam_networkview.test_internal_forward_zones"
+// 	var v ipam.Networkview
+// 	name := acctest.RandomNameWithPrefix("test-nview")
+// 	InternalForwardZonesCreate := []string{"\"zone_auth/ZG5zLnpvbmUkLl9kZWZhdWx0LmNvbS5maXJzdA:first.com/default\""}
+// 	InternalForwardZonesUpdate := []string{"\"zone_auth/ZG5zLnpvbmUkLl9kZWZhdWx0LmNvbS5maXJzdA:first.com/default\"",
+// 		"\"zone_auth/ZG5zLnpvbmUkLl9kZWZhdWx0LmNvbS5zZWNvbmQ:second.com/default\""}
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
-		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			// Create and Read
-			{
-				Config: testAccNetworkviewInternalForwardZones("INTERNAL_FORWARD_ZONES_REPLACE_ME"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "internal_forward_zones", "INTERNAL_FORWARD_ZONES_REPLACE_ME"),
-				),
-			},
-			// Update and Read
-			{
-				Config: testAccNetworkviewInternalForwardZones("INTERNAL_FORWARD_ZONES_UPDATE_REPLACE_ME"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "internal_forward_zones", "INTERNAL_FORWARD_ZONES_UPDATE_REPLACE_ME"),
-				),
-			},
-			// Delete testing automatically occurs in TestCase
-		},
-	})
-}
+// 	resource.ParallelTest(t, resource.TestCase{
+// 		PreCheck:                 func() { acctest.PreCheck(t) },
+// 		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
+// 		Steps: []resource.TestStep{
+// 			// Create and Read
+// 			{
+// 				Config: testAccNetworkviewInternalForwardZonesBasic(name),
+// 				Check: resource.ComposeTestCheckFunc(
+// 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
+// 					resource.TestCheckResourceAttr(resourceName, "name", name),
+// 				),
+// 			},
+// 			// Update and Read
+// 			{
+// 				Config: testAccNetworkviewInternalForwardZones(name, InternalForwardZonesCreate),
+// 				Check: resource.ComposeTestCheckFunc(
+// 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
+// 					resource.TestCheckResourceAttr(resourceName, "internal_forward_zones.0", InternalForwardZonesCreate[0]),
+// 				),
+// 			},
+// 			{
+// 				Config: testAccNetworkviewInternalForwardZones(name, InternalForwardZonesUpdate),
+// 				Check: resource.ComposeTestCheckFunc(
+// 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
+// 					resource.TestCheckResourceAttr(resourceName, "internal_forward_zones.0", InternalForwardZonesUpdate[0]),
+// 					resource.TestCheckResourceAttr(resourceName, "internal_forward_zones.1", InternalForwardZonesUpdate[1]),
+// 				),
+// 			},
+// 			// Delete testing automatically occurs in TestCase
+// 		},
+// 	})
+// }
 
 func TestAccNetworkviewResource_MgmPrivate(t *testing.T) {
 	var resourceName = "nios_ipam_networkview.test_mgm_private"
 	var v ipam.Networkview
+	name := acctest.RandomNameWithPrefix("test-nview")
+	MgmPrivateCreate := false
+	MgmPrivateUpdate := true
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -302,47 +362,18 @@ func TestAccNetworkviewResource_MgmPrivate(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccNetworkviewMgmPrivate("MGM_PRIVATE_REPLACE_ME"),
+				Config: testAccNetworkviewMgmPrivate(name, MgmPrivateCreate),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "mgm_private", "MGM_PRIVATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "mgm_private", "false"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccNetworkviewMgmPrivate("MGM_PRIVATE_UPDATE_REPLACE_ME"),
+				Config: testAccNetworkviewMgmPrivate(name, MgmPrivateUpdate),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "mgm_private", "MGM_PRIVATE_UPDATE_REPLACE_ME"),
-				),
-			},
-			// Delete testing automatically occurs in TestCase
-		},
-	})
-}
-
-func TestAccNetworkviewResource_MsAdUserData(t *testing.T) {
-	var resourceName = "nios_ipam_networkview.test_ms_ad_user_data"
-	var v ipam.Networkview
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
-		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			// Create and Read
-			{
-				Config: testAccNetworkviewMsAdUserData("MS_AD_USER_DATA_REPLACE_ME"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ms_ad_user_data", "MS_AD_USER_DATA_REPLACE_ME"),
-				),
-			},
-			// Update and Read
-			{
-				Config: testAccNetworkviewMsAdUserData("MS_AD_USER_DATA_UPDATE_REPLACE_ME"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "ms_ad_user_data", "MS_AD_USER_DATA_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "mgm_private", "true"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -353,6 +384,8 @@ func TestAccNetworkviewResource_MsAdUserData(t *testing.T) {
 func TestAccNetworkviewResource_Name(t *testing.T) {
 	var resourceName = "nios_ipam_networkview.test_name"
 	var v ipam.Networkview
+	Name := acctest.RandomNameWithPrefix("test-nview")
+	NewName := acctest.RandomNameWithPrefix("test-nview")
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -360,18 +393,18 @@ func TestAccNetworkviewResource_Name(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccNetworkviewName("NAME_REPLACE_ME"),
+				Config: testAccNetworkviewName(Name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "name", "NAME_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "name", Name),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccNetworkviewName("NAME_UPDATE_REPLACE_ME"),
+				Config: testAccNetworkviewName(NewName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "name", "NAME_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "name", NewName),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -382,6 +415,30 @@ func TestAccNetworkviewResource_Name(t *testing.T) {
 func TestAccNetworkviewResource_RemoteForwardZones(t *testing.T) {
 	var resourceName = "nios_ipam_networkview.test_remote_forward_zones"
 	var v ipam.Networkview
+	name := acctest.RandomNameWithPrefix("test-nview")
+	RemoteForwardZonesCreate := `[
+	{
+		fqdn           = "fwdzone1.com"
+		key_type       = "NONE"
+		server_address = "192.168.12.12"
+	}
+	]`
+
+	RemoteForwardZonesUpdate := `[
+	{
+		fqdn           = "fwdzone2.com"
+		key_type       = "NONE"
+		server_address = "192.168.12.13"
+	},
+	{
+		fqdn           = "fwdzone3.com"
+		key_type       = "TSIG"
+		server_address = "192.168.12.14"
+		tsig_key_name  = "tsigkey"
+		tsig_key_alg   = "HMAC-SHA256"
+		tsig_key       = "dGhpc2lzdGVzdHRzaWdrZXk="
+	}
+	]`
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -389,18 +446,28 @@ func TestAccNetworkviewResource_RemoteForwardZones(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccNetworkviewRemoteForwardZones("REMOTE_FORWARD_ZONES_REPLACE_ME"),
+				Config: testAccNetworkviewRemoteForwardZones(name, RemoteForwardZonesCreate),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones", "REMOTE_FORWARD_ZONES_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones.0.fqdn", "fwdzone1.com"),
+					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones.0.key_type", "NONE"),
+					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones.0.server_address", "192.168.12.12"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccNetworkviewRemoteForwardZones("REMOTE_FORWARD_ZONES_UPDATE_REPLACE_ME"),
+				Config: testAccNetworkviewRemoteForwardZones(name, RemoteForwardZonesUpdate),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones", "REMOTE_FORWARD_ZONES_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones.0.fqdn", "fwdzone2.com"),
+					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones.0.key_type", "NONE"),
+					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones.0.server_address", "192.168.12.13"),
+					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones.1.fqdn", "fwdzone3.com"),
+					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones.1.key_type", "TSIG"),
+					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones.1.server_address", "192.168.12.14"),
+					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones.1.tsig_key_name", "tsigkey"),
+					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones.1.tsig_key_alg", "HMAC-SHA256"),
+					resource.TestCheckResourceAttr(resourceName, "remote_forward_zones.1.tsig_key", "dGhpc2lzdGVzdHRzaWdrZXk="),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -411,6 +478,31 @@ func TestAccNetworkviewResource_RemoteForwardZones(t *testing.T) {
 func TestAccNetworkviewResource_RemoteReverseZones(t *testing.T) {
 	var resourceName = "nios_ipam_networkview.test_remote_reverse_zones"
 	var v ipam.Networkview
+	name := acctest.RandomNameWithPrefix("test-nview")
+
+	RemoteReverseZonesCreate := `[
+	{
+		fqdn           = "0.168.192.in-addr.arpa"
+		key_type       = "NONE"
+		server_address = "192.168.12.12"
+	}
+	]`
+
+	RemoteReverseZonesUpdate := `[
+	{
+		fqdn           = "2.168.192.in-addr.arpa"
+		key_type       = "NONE"
+		server_address = "192.168.12.13"
+	},
+	{
+		fqdn           = "1.168.192.in-addr.arpa"
+		key_type       = "TSIG"
+		server_address = "192.168.12.14"
+		tsig_key_name  = "tsigkey"
+		tsig_key_alg   = "HMAC-SHA256"
+		tsig_key       = "dGhpc2lzdGVzdHRzaWdrZXk="
+	}
+	]`
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { acctest.PreCheck(t) },
@@ -418,18 +510,28 @@ func TestAccNetworkviewResource_RemoteReverseZones(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read
 			{
-				Config: testAccNetworkviewRemoteReverseZones("REMOTE_REVERSE_ZONES_REPLACE_ME"),
+				Config: testAccNetworkviewRemoteReverseZones(name, RemoteReverseZonesCreate),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones", "REMOTE_REVERSE_ZONES_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones.0.fqdn", "0.168.192.in-addr.arpa"),
+					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones.0.key_type", "NONE"),
+					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones.0.server_address", "192.168.12.12"),
 				),
 			},
 			// Update and Read
 			{
-				Config: testAccNetworkviewRemoteReverseZones("REMOTE_REVERSE_ZONES_UPDATE_REPLACE_ME"),
+				Config: testAccNetworkviewRemoteReverseZones(name, RemoteReverseZonesUpdate),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkviewExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones", "REMOTE_REVERSE_ZONES_UPDATE_REPLACE_ME"),
+					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones.0.fqdn", "2.168.192.in-addr.arpa"),
+					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones.0.key_type", "NONE"),
+					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones.0.server_address", "192.168.12.13"),
+					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones.1.fqdn", "1.168.192.in-addr.arpa"),
+					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones.1.key_type", "TSIG"),
+					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones.1.server_address", "192.168.12.14"),
+					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones.1.tsig_key_name", "tsigkey"),
+					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones.1.tsig_key_alg", "HMAC-SHA256"),
+					resource.TestCheckResourceAttr(resourceName, "remote_reverse_zones.1.tsig_key", "dGhpc2lzdGVzdHRzaWdrZXk="),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -495,12 +597,13 @@ func testAccCheckNetworkviewDisappears(ctx context.Context, v *ipam.Networkview)
 	}
 }
 
-func testAccNetworkviewBasicConfig(string) string {
+func testAccNetworkviewBasicConfig(name string) string {
 	// TODO: create basic resource with required fields
 	return fmt.Sprintf(`
 resource "nios_ipam_networkview" "test" {
+	name = %q
 }
-`)
+`, name)
 }
 
 func testAccNetworkviewRef(ref string) string {
@@ -511,68 +614,97 @@ resource "nios_ipam_networkview" "test_ref" {
 `, ref)
 }
 
-func testAccNetworkviewCloudInfo(cloudInfo string) string {
+func testAccNetworkviewCloudInfo(name, member_name, member_ipv4, member_ipv6 string) string {
 	return fmt.Sprintf(`
 resource "nios_ipam_networkview" "test_cloud_info" {
-    cloud_info = %q
+	name = %q
+    cloud_info = {
+		delegated_member = {
+			name 	 = %q
+			ipv4addr = %q
+			ipv6addr = %q
+		}
+	}
 }
-`, cloudInfo)
+`, name, member_name, member_ipv4, member_ipv6)
 }
 
-func testAccNetworkviewComment(comment string) string {
+func testAccNetworkviewComment(name, comment string) string {
 	return fmt.Sprintf(`
 resource "nios_ipam_networkview" "test_comment" {
+	name 	= %q
     comment = %q
 }
-`, comment)
+`, name, comment)
 }
 
-func testAccNetworkviewDdnsDnsView(ddnsDnsView string) string {
+func testAccNetworkviewDdnsDnsView(name, ddnsDnsView string) string {
 	return fmt.Sprintf(`
 resource "nios_ipam_networkview" "test_ddns_dns_view" {
-    ddns_dns_view = %q
+	name 		  = %q
+    ddns_dns_view = %s
 }
-`, ddnsDnsView)
+`, name, ddnsDnsView)
 }
 
-func testAccNetworkviewDdnsZonePrimaries(ddnsZonePrimaries string) string {
+func testAccNetworkviewDdnsZonePrimaries(name, ddnsZonePrimaries string) string {
 	return fmt.Sprintf(`
 resource "nios_ipam_networkview" "test_ddns_zone_primaries" {
-    ddns_zone_primaries = %q
+	name = %q
+    ddns_zone_primaries = %s
 }
-`, ddnsZonePrimaries)
+`, name, ddnsZonePrimaries)
 }
 
-func testAccNetworkviewExtAttrs(extAttrs string) string {
+func testAccNetworkviewExtAttrs(name string, extAttrs map[string]string) string {
+	extattrsStr := "{\n"
+	for k, v := range extAttrs {
+		extattrsStr += fmt.Sprintf(`
+  %s = %q
+`, k, v)
+	}
+	extattrsStr += "\t}"
 	return fmt.Sprintf(`
 resource "nios_ipam_networkview" "test_extattrs" {
-    extattrs = %q
+	name = %q
+    extattrs = %s
 }
-`, extAttrs)
+`, name, extattrsStr)
 }
 
-func testAccNetworkviewFederatedRealms(federatedRealms string) string {
+func testAccNetworkviewFederatedRealms(name, federatedRealms string) string {
 	return fmt.Sprintf(`
 resource "nios_ipam_networkview" "test_federated_realms" {
-    federated_realms = %q
+	name = %q
+    federated_realms = %s
 }
-`, federatedRealms)
+`, name, federatedRealms)
 }
 
-func testAccNetworkviewInternalForwardZones(internalForwardZones string) string {
+func testAccNetworkviewInternalForwardZonesBasic(name string) string {
 	return fmt.Sprintf(`
 resource "nios_ipam_networkview" "test_internal_forward_zones" {
-    internal_forward_zones = %q
+    name = %q
 }
-`, internalForwardZones)
+`, name)
 }
 
-func testAccNetworkviewMgmPrivate(mgmPrivate string) string {
+func testAccNetworkviewInternalForwardZones(name string, internalForwardZones []string) string {
+	return fmt.Sprintf(`
+resource "nios_ipam_networkview" "test_internal_forward_zones" {
+	name = %q
+    internal_forward_zones = %s
+}
+`, name, internalForwardZones)
+}
+
+func testAccNetworkviewMgmPrivate(name string, mgmPrivate bool) string {
 	return fmt.Sprintf(`
 resource "nios_ipam_networkview" "test_mgm_private" {
-    mgm_private = %q
+	name = %q
+    mgm_private = %t
 }
-`, mgmPrivate)
+`, name, mgmPrivate)
 }
 
 func testAccNetworkviewMsAdUserData(msAdUserData string) string {
@@ -591,18 +723,20 @@ resource "nios_ipam_networkview" "test_name" {
 `, name)
 }
 
-func testAccNetworkviewRemoteForwardZones(remoteForwardZones string) string {
+func testAccNetworkviewRemoteForwardZones(name, remoteForwardZones string) string {
 	return fmt.Sprintf(`
 resource "nios_ipam_networkview" "test_remote_forward_zones" {
-    remote_forward_zones = %q
+	name 				 = %q
+    remote_forward_zones = %s
 }
-`, remoteForwardZones)
+`, name, remoteForwardZones)
 }
 
-func testAccNetworkviewRemoteReverseZones(remoteReverseZones string) string {
+func testAccNetworkviewRemoteReverseZones(name, remoteReverseZones string) string {
 	return fmt.Sprintf(`
 resource "nios_ipam_networkview" "test_remote_reverse_zones" {
-    remote_reverse_zones = %q
+	name 				 = %q
+    remote_reverse_zones = %s
 }
-`, remoteReverseZones)
+`, name, remoteReverseZones)
 }
