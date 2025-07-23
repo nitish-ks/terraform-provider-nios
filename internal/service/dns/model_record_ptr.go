@@ -269,17 +269,34 @@ func (m *RecordPtrModel) Expand(ctx context.Context, diags *diag.Diagnostics, is
 		DiscoveredData:     ExpandRecordPtrDiscoveredData(ctx, m.DiscoveredData, diags),
 		ExtAttrs:           ExpandExtAttr(ctx, m.ExtAttrs, diags),
 		ForbidReclamation:  flex.ExpandBoolPointer(m.ForbidReclamation),
-		Ipv4addr:           ExpandRecordPtrIpv4addr(m.Ipv4addr),
-		FuncCall:           ExpandFuncCall(ctx, m.FuncCall, diags),
-		Ipv6addr:           ExpandRecordPtrIpv6addr(m.Ipv6addr),
-		MsAdUserData:       ExpandRecordPtrMsAdUserData(ctx, m.MsAdUserData, diags),
-		Name:               flex.ExpandStringPointer(m.Name),
-		Ptrdname:           flex.ExpandStringPointer(m.Ptrdname),
-		Ttl:                flex.ExpandInt64Pointer(m.Ttl),
-		UseTtl:             flex.ExpandBoolPointer(m.UseTtl),
+		// Ipv4addr:           ExpandRecordPtrIpv4addr(m.Ipv4addr),
+		FuncCall: ExpandFuncCall(ctx, m.FuncCall, diags),
+		// Ipv6addr:           ExpandRecordPtrIpv6addr(m.Ipv6addr),
+		MsAdUserData: ExpandRecordPtrMsAdUserData(ctx, m.MsAdUserData, diags),
+		Name:         flex.ExpandStringPointer(m.Name),
+		Ptrdname:     flex.ExpandStringPointer(m.Ptrdname),
+		Ttl:          flex.ExpandInt64Pointer(m.Ttl),
+		UseTtl:       flex.ExpandBoolPointer(m.UseTtl),
 	}
 	if isCreate {
 		to.View = flex.ExpandStringPointer(m.View)
+	}
+	if !m.Ipv4addr.IsUnknown() {
+		if m.Ipv4addr.ValueString() != "" {
+			to.Ipv4addr = ExpandRecordPtrIpv4addr(m.Ipv4addr)
+		}
+	} else if !m.Ipv6addr.IsUnknown() {
+		if m.Ipv6addr.ValueString() != "" {
+			to.Ipv6addr = ExpandRecordPtrIpv6addr(m.Ipv6addr)
+		}
+	}
+
+	if !m.FuncCall.IsNull() {
+		if m.FuncCall.Attributes()["attribute_name"].(types.String).ValueString() == "Ipv4addr" {
+			to.Ipv4addr = ExpandRecordPtrIpv4addr(m.Ipv4addr)
+		} else if m.FuncCall.Attributes()["attribute_name"].(types.String).ValueString() == "Ipv6addr" {
+			to.Ipv6addr = ExpandRecordPtrIpv6addr(m.Ipv6addr)
+		}
 	}
 	return to
 }
@@ -335,42 +352,24 @@ func (m *RecordPtrModel) Flatten(ctx context.Context, from *dns.RecordPtr, diags
 }
 
 func ExpandRecordPtrIpv4addr(str types.String) *dns.RecordPtrIpv4addr {
-	if str.IsNull() || str.IsUnknown() {
-		return nil
+	if str.IsNull() {
+		return &dns.RecordPtrIpv4addr{}
 	}
-	return &dns.RecordPtrIpv4addr{
-		String: flex.ExpandStringPointer(str),
-	}
+	var m dns.RecordPtrIpv4addr
+	m.String = flex.ExpandStringPointer(str)
+
+	return &m
 }
 
 func ExpandRecordPtrIpv6addr(str types.String) *dns.RecordPtrIpv6addr {
-	if str.IsNull() || str.IsUnknown() {
-		return nil
+	if str.IsNull() {
+		return &dns.RecordPtrIpv6addr{}
 	}
-	return &dns.RecordPtrIpv6addr{
-		String: flex.ExpandStringPointer(str),
-	}
+	var m dns.RecordPtrIpv6addr
+	m.String = flex.ExpandStringPointer(str)
+
+	return &m
 }
-
-// func ExpandRecordPtrIpv4addr(str types.String) *dns.RecordPtrIpv4addr {
-// 	if str.IsNull() {
-// 		return &dns.RecordPtrIpv4addr{}
-// 	}
-// 	var m dns.RecordPtrIpv4addr
-// 	m.String = flex.ExpandStringPointer(str)
-
-// 	return &m
-// }
-
-// func ExpandRecordPtrIpv6addr(str types.String) *dns.RecordPtrIpv6addr {
-// 	if str.IsNull() {
-// 		return &dns.RecordPtrIpv6addr{}
-// 	}
-// 	var m dns.RecordPtrIpv6addr
-// 	m.String = flex.ExpandStringPointer(str)
-
-// 	return &m
-// }
 
 func FlattenRecordPtrIpv4addr(from *dns.RecordPtrIpv4addr) types.String {
 	if from.String == nil {
