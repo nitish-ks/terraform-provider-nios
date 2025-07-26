@@ -38,8 +38,9 @@ var RecordPtrCloudInfoAttrTypes = map[string]attr.Type{
 
 var RecordPtrCloudInfoResourceSchemaAttributes = map[string]schema.Attribute{
 	"delegated_member": schema.SingleNestedAttribute{
-		Attributes: RecordptrcloudinfoDelegatedMemberResourceSchemaAttributes,
-		Optional:   true,
+		Attributes:          RecordptrcloudinfoDelegatedMemberResourceSchemaAttributes,
+		Computed:            true,
+		MarkdownDescription: "The Cloud Platform Appliance to which authority of the object is delegated.",
 	},
 	"delegated_scope": schema.StringAttribute{
 		Computed:            true,
@@ -87,9 +88,7 @@ func (m *RecordPtrCloudInfoModel) Expand(ctx context.Context, diags *diag.Diagno
 	if m == nil {
 		return nil
 	}
-	to := &dns.RecordPtrCloudInfo{
-		DelegatedMember: ExpandRecordptrcloudinfoDelegatedMember(ctx, m.DelegatedMember, diags),
-	}
+	to := &dns.RecordPtrCloudInfo{}
 	return to
 }
 

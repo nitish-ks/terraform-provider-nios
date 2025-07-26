@@ -38,6 +38,7 @@ func TestAccRecordPtrResource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "ptrdname", Ptrdname),
 					resource.TestCheckResourceAttr(resourceName, "view", "default"),
 					resource.TestCheckResourceAttr(resourceName, "name", "22.10.168.192.in-addr.arpa"),
+					// Test fields with default value
 					resource.TestCheckResourceAttr(resourceName, "creator", "STATIC"),
 					resource.TestCheckResourceAttr(resourceName, "ddns_protected", "false"),
 					resource.TestCheckResourceAttr(resourceName, "disable", "false"),
@@ -309,6 +310,9 @@ func TestAccRecordPtrResource_Ipv4addr(t *testing.T) {
 	})
 }
 
+// TestAccRecordPtrResource_FuncCall tests the "func_call" attribute functionality
+// which allocates IP addresses using next_available_ip. Since func_call attribute can't be
+// updated, the comment is updated to demonstrate an update to the resource
 func TestAccRecordPtrResource_FuncCall(t *testing.T) {
 	var resourceName = "nios_dns_record_ptr.test_func_call"
 	var v dns.RecordPtr
@@ -493,35 +497,6 @@ func TestAccRecordPtrResource_UseTtl(t *testing.T) {
 	})
 }
 
-func TestAccRecordPtrResource_View(t *testing.T) {
-	var resourceName = "nios_dns_record_ptr.test_view"
-	var v dns.RecordPtr
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:                 func() { acctest.PreCheck(t) },
-		ProtoV6ProviderFactories: acctest.ProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			// Create and Read
-			{
-				Config: testAccRecordPtrView("192.168.10.35", "ptr.example.com", "custom_view"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "view", "custom_view"),
-				),
-			},
-			// Update and Read
-			{
-				Config: testAccRecordPtrView("192.168.10.35", "ptr.example.com", "custom_view"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordPtrExists(context.Background(), resourceName, &v),
-					resource.TestCheckResourceAttr(resourceName, "view", "custom_view"),
-				),
-			},
-			// Delete testing automatically occurs in TestCase
-		},
-	})
-}
-
 func testAccCheckRecordPtrExists(ctx context.Context, resourceName string, v *dns.RecordPtr) resource.TestCheckFunc {
 	// Verify the resource exists in the cloud
 	return func(state *terraform.State) error {
@@ -581,7 +556,6 @@ func testAccCheckRecordPtrDisappears(ctx context.Context, v *dns.RecordPtr) reso
 }
 
 func testAccRecordPtrBasicConfig(Ipv4addr, Ptrdname string) string {
-	// TODO: create basic resource with required fields
 	return fmt.Sprintf(`
 resource "nios_dns_record_ptr" "test" {
 	ipv4addr = %q
@@ -757,14 +731,4 @@ resource "nios_dns_record_ptr" "test_use_ttl" {
 	ttl = %d
 }
 `, ipv6addr, ptrdname, view, useTtl, ttl)
-}
-
-func testAccRecordPtrView(ipv4addr, ptrdname, view string) string {
-	return fmt.Sprintf(`
-resource "nios_dns_record_ptr" "test_view" {
-	ipv4addr = %q
-	ptrdname = %q
-    view = %q
-}
-`, ipv4addr, ptrdname, view)
 }

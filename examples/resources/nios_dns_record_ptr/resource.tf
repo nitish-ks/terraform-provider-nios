@@ -1,14 +1,14 @@
-// Create IPv4 PTR object
+// Create an IPv4 PTR record with Basic fields
 resource "nios_dns_record_ptr" "create_ipv4_record" {
   ptrdname = "example_record.example.com"
   ipv4addr = "10.20.1.2"
   view     = "default"
   extattrs = {
-    Site = "Siteblr"
+    Site = "location-1"
   }
 }
 
-// Create IPv6 PTR object
+// Create IPv6 PTR object with Basic fields
 resource "nios_dns_record_ptr" "create_ipv6_record" {
   ptrdname = "example_record.example.com"
   ipv6addr = "2001::123"
@@ -18,13 +18,23 @@ resource "nios_dns_record_ptr" "create_ipv6_record" {
   }
 }
 
-// Create IPv4 PTR object by name
+// Create IPv4 PTR object by name with Basic fields
 resource "nios_dns_record_ptr" "create_ptr_record" {
   ptrdname = "example_record.example.com"
   name     = "22.0.0.11.in-addr.arpa"
   view     = "default"
   extattrs = {
-    Site = "Siteblr"
+    Site = "location-1"
+  }
+}
+
+// Create IPv4 PTR object by name with Additional fields
+resource "nios_dns_record_ptr" "create_ptr_record" {
+  ptrdname = "example_record.example.com"
+  name     = "22.0.0.11.in-addr.arpa"
+  view     = "default"
+  extattrs = {
+    Site = "location-2"
   }
 }
 

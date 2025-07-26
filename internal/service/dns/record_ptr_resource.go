@@ -37,7 +37,7 @@ func (r *RecordPtrResource) Metadata(ctx context.Context, req resource.MetadataR
 
 func (r *RecordPtrResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "",
+		MarkdownDescription: "Manages a DNS PTR Record.",
 		Attributes:          RecordPtrResourceSchemaAttributes,
 	}
 }

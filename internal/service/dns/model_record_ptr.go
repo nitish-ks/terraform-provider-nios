@@ -2,8 +2,8 @@ package dns
 
 import (
 	"context"
+	"regexp"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -19,6 +19,7 @@ import (
 	"github.com/infobloxopen/infoblox-nios-go-client/dns"
 
 	"github.com/infobloxopen/terraform-provider-nios/internal/flex"
+	customvalidator "github.com/infobloxopen/terraform-provider-nios/internal/validator"
 )
 
 type RecordPtrModel struct {
@@ -89,16 +90,24 @@ var RecordPtrResourceSchemaAttributes = map[string]schema.Attribute{
 		MarkdownDescription: "The reference to the object.",
 	},
 	"aws_rte53_record_info": schema.SingleNestedAttribute{
-		Attributes: RecordPtrAwsRte53RecordInfoResourceSchemaAttributes,
-		Computed:   true,
+		Attributes:          RecordPtrAwsRte53RecordInfoResourceSchemaAttributes,
+		Computed:            true,
+		MarkdownDescription: "The AWS Route53 record information associated with the record.",
 	},
 	"cloud_info": schema.SingleNestedAttribute{
-		Attributes: RecordPtrCloudInfoResourceSchemaAttributes,
-		Computed:   true,
+		Attributes:          RecordPtrCloudInfoResourceSchemaAttributes,
+		Computed:            true,
+		MarkdownDescription: "The cloud information associated with the record.",
 	},
 	"comment": schema.StringAttribute{
-		Optional:            true,
-		Computed:            true,
+		Optional: true,
+		Computed: true,
+		Validators: []validator.String{
+			stringvalidator.RegexMatches(
+				regexp.MustCompile(`^\S.*\S$`),
+				"Should not have leading or trailing whitespace",
+			),
+		},
 		MarkdownDescription: "Comment for the record; maximum 256 characters.",
 	},
 	"creation_time": schema.Int64Attribute{
@@ -109,7 +118,7 @@ var RecordPtrResourceSchemaAttributes = map[string]schema.Attribute{
 		Optional: true,
 		Computed: true,
 		Validators: []validator.String{
-			stringvalidator.OneOf("STATIC", "DYNAMIC"),
+			stringvalidator.OneOf("STATIC", "DYNAMIC", "SYSTEM"),
 		},
 		Default:             stringdefault.StaticString("STATIC"),
 		MarkdownDescription: "The record creator. Note that changing creator from or to 'SYSTEM' value is not allowed.",
@@ -132,8 +141,9 @@ var RecordPtrResourceSchemaAttributes = map[string]schema.Attribute{
 		MarkdownDescription: "Determines if the record is disabled or not. False means that the record is enabled.",
 	},
 	"discovered_data": schema.SingleNestedAttribute{
-		Attributes: RecordPtrDiscoveredDataResourceSchemaAttributes,
-		Computed:   true,
+		Attributes:          RecordPtrDiscoveredDataResourceSchemaAttributes,
+		Computed:            true,
+		MarkdownDescription: "The discovered data for the record.",
 	},
 	"dns_name": schema.StringAttribute{
 		Computed:            true,
@@ -165,8 +175,7 @@ var RecordPtrResourceSchemaAttributes = map[string]schema.Attribute{
 		Optional: true,
 		Computed: true,
 		Validators: []validator.String{
-			stringvalidator.ExactlyOneOf(
-				path.MatchRoot("ipv4addr"),
+			stringvalidator.ConflictsWith(
 				path.MatchRoot("ipv6addr"),
 				path.MatchRoot("name"),
 				path.MatchRoot("func_call"),
@@ -177,15 +186,15 @@ var RecordPtrResourceSchemaAttributes = map[string]schema.Attribute{
 	"func_call": schema.SingleNestedAttribute{
 		Attributes:          FuncCallResourceSchemaAttributes,
 		Optional:            true,
+		Computed:            true,
 		MarkdownDescription: "Function call to be executed.",
 	},
 	"ipv6addr": schema.StringAttribute{
 		Optional: true,
 		Computed: true,
 		Validators: []validator.String{
-			stringvalidator.ExactlyOneOf(
+			stringvalidator.ConflictsWith(
 				path.MatchRoot("ipv4addr"),
-				path.MatchRoot("ipv6addr"),
 				path.MatchRoot("name"),
 				path.MatchRoot("func_call"),
 			),
@@ -205,17 +214,20 @@ var RecordPtrResourceSchemaAttributes = map[string]schema.Attribute{
 		Optional: true,
 		Computed: true,
 		Validators: []validator.String{
-			stringvalidator.ExactlyOneOf(
+			stringvalidator.ConflictsWith(
 				path.MatchRoot("ipv4addr"),
 				path.MatchRoot("ipv6addr"),
-				path.MatchRoot("name"),
 				path.MatchRoot("func_call"),
 			),
+			customvalidator.IsValidFQDN(),
 		},
 		MarkdownDescription: "The name of the DNS PTR record in FQDN format.",
 	},
 	"ptrdname": schema.StringAttribute{
-		Required:            true,
+		Required: true,
+		Validators: []validator.String{
+			customvalidator.IsValidFQDN(),
+		},
 		MarkdownDescription: "The domain name of the DNS PTR record in FQDN format.",
 	},
 	"reclaimable": schema.BoolAttribute{
@@ -234,17 +246,15 @@ var RecordPtrResourceSchemaAttributes = map[string]schema.Attribute{
 		MarkdownDescription: "Time To Live (TTL) value for the record. A 32-bit unsigned integer that represents the duration, in seconds, that the record is valid (cached). Zero indicates that the record should not be cached.",
 	},
 	"use_ttl": schema.BoolAttribute{
-		Optional: true,
-		Computed: true,
-		Default:  booldefault.StaticBool(false),
-		Validators: []validator.Bool{
-			boolvalidator.AlsoRequires(path.MatchRoot("ttl")),
-		},
+		Optional:            true,
+		Computed:            true,
+		Default:             booldefault.StaticBool(false),
 		MarkdownDescription: "Flag to indicate whether the TTL value should be used for the A record.",
 	},
 	"view": schema.StringAttribute{
 		Optional:            true,
 		Computed:            true,
+		Default:             stringdefault.StaticString("default"),
 		MarkdownDescription: "Name of the DNS View in which the record resides, for example \"external\".",
 	},
 	"zone": schema.StringAttribute{
@@ -258,25 +268,18 @@ func (m *RecordPtrModel) Expand(ctx context.Context, diags *diag.Diagnostics, is
 		return nil
 	}
 	to := &dns.RecordPtr{
-		Ref:                flex.ExpandStringPointer(m.Ref),
-		AwsRte53RecordInfo: ExpandRecordPtrAwsRte53RecordInfo(ctx, m.AwsRte53RecordInfo, diags),
-		CloudInfo:          ExpandRecordPtrCloudInfo(ctx, m.CloudInfo, diags),
-		Comment:            flex.ExpandStringPointer(m.Comment),
-		Creator:            flex.ExpandStringPointer(m.Creator),
-		DdnsPrincipal:      flex.ExpandStringPointer(m.DdnsPrincipal),
-		DdnsProtected:      flex.ExpandBoolPointer(m.DdnsProtected),
-		Disable:            flex.ExpandBoolPointer(m.Disable),
-		DiscoveredData:     ExpandRecordPtrDiscoveredData(ctx, m.DiscoveredData, diags),
-		ExtAttrs:           ExpandExtAttr(ctx, m.ExtAttrs, diags),
-		ForbidReclamation:  flex.ExpandBoolPointer(m.ForbidReclamation),
-		// Ipv4addr:           ExpandRecordPtrIpv4addr(m.Ipv4addr),
-		FuncCall: ExpandFuncCall(ctx, m.FuncCall, diags),
-		// Ipv6addr:           ExpandRecordPtrIpv6addr(m.Ipv6addr),
-		MsAdUserData: ExpandRecordPtrMsAdUserData(ctx, m.MsAdUserData, diags),
-		Name:         flex.ExpandStringPointer(m.Name),
-		Ptrdname:     flex.ExpandStringPointer(m.Ptrdname),
-		Ttl:          flex.ExpandInt64Pointer(m.Ttl),
-		UseTtl:       flex.ExpandBoolPointer(m.UseTtl),
+		Comment:           flex.ExpandStringPointer(m.Comment),
+		Creator:           flex.ExpandStringPointer(m.Creator),
+		DdnsPrincipal:     flex.ExpandStringPointer(m.DdnsPrincipal),
+		DdnsProtected:     flex.ExpandBoolPointer(m.DdnsProtected),
+		Disable:           flex.ExpandBoolPointer(m.Disable),
+		ExtAttrs:          ExpandExtAttr(ctx, m.ExtAttrs, diags),
+		ForbidReclamation: flex.ExpandBoolPointer(m.ForbidReclamation),
+		FuncCall:          ExpandFuncCall(ctx, m.FuncCall, diags),
+		Name:              flex.ExpandStringPointer(m.Name),
+		Ptrdname:          flex.ExpandStringPointer(m.Ptrdname),
+		Ttl:               flex.ExpandInt64Pointer(m.Ttl),
+		UseTtl:            flex.ExpandBoolPointer(m.UseTtl),
 	}
 	if isCreate {
 		to.View = flex.ExpandStringPointer(m.View)
