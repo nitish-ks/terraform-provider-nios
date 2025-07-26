@@ -294,7 +294,7 @@ func (m *RecordPtrModel) Expand(ctx context.Context, diags *diag.Diagnostics, is
 		}
 	}
 
-	if !m.FuncCall.IsNull() {
+	if !m.FuncCall.IsUnknown() && !m.FuncCall.IsNull() {
 		if m.FuncCall.Attributes()["attribute_name"].(types.String).ValueString() == "Ipv4addr" {
 			to.Ipv4addr = ExpandRecordPtrIpv4addr(m.Ipv4addr)
 		} else if m.FuncCall.Attributes()["attribute_name"].(types.String).ValueString() == "Ipv6addr" {
