@@ -3,12 +3,12 @@
 page_title: "nios_dns_record_ptr Data Source - nios"
 subcategory: "DNS"
 description: |-
-  
+  Retrieves information about existing DNS PTR Records.
 ---
 
 # nios_dns_record_ptr (Data Source)
 
-
+Retrieves information about existing DNS PTR Records.
 
 ## Example Usage
 
@@ -16,7 +16,7 @@ description: |-
 // Retrieve a specific PTR record by filters
 data "nios_dns_record_ptr" "get_record_using_filters" {
   filters = {
-    ipv4addr = "192.168.10.44"
+    ipv4addr = "10.20.1.2"
   }
 }
 
@@ -71,10 +71,10 @@ Optional:
 
 Read-Only:
 
-- `aws_rte53_record_info` (Attributes) (see [below for nested schema](#nestedatt--result--aws_rte53_record_info))
-- `cloud_info` (Attributes) (see [below for nested schema](#nestedatt--result--cloud_info))
+- `aws_rte53_record_info` (Attributes) The AWS Route53 record information associated with the record. (see [below for nested schema](#nestedatt--result--aws_rte53_record_info))
+- `cloud_info` (Attributes) The cloud information associated with the record. (see [below for nested schema](#nestedatt--result--cloud_info))
 - `creation_time` (Number) The time of the record creation in Epoch seconds format.
-- `discovered_data` (Attributes) (see [below for nested schema](#nestedatt--result--discovered_data))
+- `discovered_data` (Attributes) The discovered data for the record. (see [below for nested schema](#nestedatt--result--discovered_data))
 - `dns_name` (String) The name for a DNS PTR record in punycode format.
 - `dns_ptrdname` (String) The domain name of the DNS PTR record in punycode format.
 - `extattrs_all` (Map of String) Extensible attributes associated with the object , including default attributes.
@@ -123,13 +123,10 @@ Read-Only:
 <a id="nestedatt--result--cloud_info"></a>
 ### Nested Schema for `result.cloud_info`
 
-Optional:
-
-- `delegated_member` (Attributes) (see [below for nested schema](#nestedatt--result--cloud_info--delegated_member))
-
 Read-Only:
 
 - `authority_type` (String) Type of authority over the object.
+- `delegated_member` (Attributes) The Cloud Platform Appliance to which authority of the object is delegated. (see [below for nested schema](#nestedatt--result--cloud_info--delegated_member))
 - `delegated_root` (String) Indicates the root of the delegation if delegated_scope is SUBTREE or RECLAIMING. This is not set otherwise.
 - `delegated_scope` (String) Indicates the scope of delegation for the object. This can be one of the following: NONE (outside any delegation), ROOT (the delegation point), SUBTREE (within the scope of a delegation), RECLAIMING (within the scope of a delegation being reclaimed, either as the delegation point or in the subtree).
 - `mgmt_platform` (String) Indicates the specified cloud management platform.
@@ -140,7 +137,7 @@ Read-Only:
 <a id="nestedatt--result--cloud_info--delegated_member"></a>
 ### Nested Schema for `result.cloud_info.delegated_member`
 
-Optional:
+Read-Only:
 
 - `ipv4addr` (String) The IPv4 Address of the Grid Member.
 - `ipv6addr` (String) The IPv6 Address of the Grid Member.

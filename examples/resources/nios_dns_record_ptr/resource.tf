@@ -32,7 +32,15 @@ resource "nios_dns_record_ptr" "create_ptr_record" {
 resource "nios_dns_record_ptr" "create_ptr_record" {
   ptrdname = "example_record.example.com"
   name     = "22.0.0.11.in-addr.arpa"
-  view     = "default"
+
+  // Additional Fields
+  view    = "default"
+  use_ttl = true
+  ttl     = 10
+  creator = "DYNAMIC"
+  comment = "Example PTR record"
+
+  // Extensible Attributes
   extattrs = {
     Site = "location-2"
   }

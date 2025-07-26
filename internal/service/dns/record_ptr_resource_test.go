@@ -15,7 +15,9 @@ import (
 	"github.com/infobloxopen/terraform-provider-nios/internal/utils"
 )
 
-// TODO : Add readable attributes for the resource
+// TODO: OBJECTS TO BE PRESENT IN GRID FOR TESTS
+// - IPV4 reverse mapping zone - 92.168.10.0/24
+// - IPV6 reverse mapping zone - 2001::/64
 var readableAttributesForRecordPtr = "aws_rte53_record_info,cloud_info,comment,creation_time,creator,ddns_principal,ddns_protected,disable,discovered_data,dns_name,dns_ptrdname,extattrs,forbid_reclamation,ipv4addr,ipv6addr,last_queried,ms_ad_user_data,name,ptrdname,reclaimable,shared_record_group,ttl,use_ttl,view,zone"
 
 func TestAccRecordPtrResource_basic(t *testing.T) {
