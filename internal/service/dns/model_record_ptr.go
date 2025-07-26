@@ -378,8 +378,7 @@ func FlattenRecordPtrIpv4addr(from *dns.RecordPtrIpv4addr) types.String {
 	if from.String == nil {
 		return types.StringNull()
 	}
-	m := types.String{}
-	m = flex.FlattenStringPointer(from.String)
+	m := flex.FlattenStringPointer(from.String)
 	return m
 }
 
@@ -387,7 +386,6 @@ func FlattenRecordPtrIpv6addr(from *dns.RecordPtrIpv6addr) types.String {
 	if from.String == nil {
 		return types.StringNull()
 	}
-	m := types.String{}
-	m = flex.FlattenStringPointer(from.String)
+	m := flex.FlattenStringPointer(from.String)
 	return m
 }

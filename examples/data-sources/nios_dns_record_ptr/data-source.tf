@@ -14,4 +14,3 @@ data "nios_dns_record_ptr" "get_record_using_extensible_attributes" {
 
 // Retrieve all PTR records
 data "nios_dns_record_ptr" "get_all_records" {}
-

@@ -8,7 +8,7 @@ resource "nios_dns_record_ptr" "create_ipv4_record" {
   }
 }
 
-// Create IPv6 PTR object with Basic fields
+// Create an IPv6 PTR record with Basic fields
 resource "nios_dns_record_ptr" "create_ipv6_record" {
   ptrdname = "example_record.example.com"
   ipv6addr = "2001::123"
@@ -18,7 +18,7 @@ resource "nios_dns_record_ptr" "create_ipv6_record" {
   }
 }
 
-// Create IPv4 PTR object by name with Basic fields
+// Create an IPv4 PTR record by name with Basic fields
 resource "nios_dns_record_ptr" "create_ptr_record" {
   ptrdname = "example_record.example.com"
   name     = "22.0.0.11.in-addr.arpa"
@@ -28,7 +28,7 @@ resource "nios_dns_record_ptr" "create_ptr_record" {
   }
 }
 
-// Create IPv4 PTR object by name with Additional fields
+// Create an IPv4 PTR record by name with Additional fields
 resource "nios_dns_record_ptr" "create_ptr_record" {
   ptrdname = "example_record.example.com"
   name     = "22.0.0.11.in-addr.arpa"
@@ -46,7 +46,7 @@ resource "nios_dns_record_ptr" "create_ptr_record" {
   }
 }
 
-// Create Record PTR using function call to retrieve ipv4addr
+// Create an PTR record using function call to retrieve ipv4addr
 resource "nios_dns_record_ptr" "create_with_func_call" {
   ptrdname = "example_func_call.example.com"
   func_call = {
